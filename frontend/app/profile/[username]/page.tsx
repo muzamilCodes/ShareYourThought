@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { ProfileCard, ThoughtCard } from '../../../components/ThoughtCard';
 import { SectionHeading } from '../../../components/SectionHeading';
 import { api } from '../../../lib/api';
@@ -13,32 +14,56 @@ export default function ProfilePage() {
   const { session, ready } = useSession();
   const [profile, setProfile] = useState<User | null>(null);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
+  const [followersList, setFollowersList] = useState<User[]>([]);
+  const [followingList, setFollowingList] = useState<User[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following'>('thoughts');
   const [loading, setLoading] = useState(true);
 
   const username = params?.username ? String(params.username).toLowerCase() : '';
 
-  useEffect(() => {
-    if (!username || !ready) return;
+  const loadProfile = async () => {
+    if (!username) return;
     setLoading(true);
 
-    api.getProfile(username, session?.token)
-      .then((data) => {
-        setProfile({ ...data.profile, _id: data.profile.id });
-        setThoughts(data.thoughts || []);
-        setIsFollowing(Boolean(data.isFollowing));
-      })
-      .catch(() => {
+    try {
+      const [profileRes, followersRes, followingRes] = await Promise.allSettled([
+        api.getProfile(username, session?.token),
+        api.getFollowers(username),
+        api.getFollowing(username)
+      ]);
+
+      if (profileRes.status === 'fulfilled') {
+        setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile.id });
+        setThoughts(profileRes.value.thoughts || []);
+        setIsFollowing(Boolean(profileRes.value.isFollowing));
+      } else {
         setProfile(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      }
+
+      if (followersRes.status === 'fulfilled') {
+        setFollowersList(followersRes.value.followers || []);
+      }
+      if (followingRes.status === 'fulfilled') {
+        setFollowingList(followingRes.value.following || []);
+      }
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!ready) return;
+    loadProfile();
   }, [username, ready, session?.token]);
 
   const currentUserId = session?.user?._id || session?.user?.id;
   const isSelf = Boolean(
-    profile && currentUserId && (profile._id === currentUserId || profile.id === currentUserId || profile.username === session?.user?.username)
+    profile &&
+      currentUserId &&
+      (profile._id === currentUserId || profile.id === currentUserId || profile.username === session?.user?.username)
   );
 
   const toggleFollow = async () => {
@@ -53,6 +78,8 @@ export default function ProfilePage() {
       const next = await api.followUser(targetId!, session.token);
       setIsFollowing(next.following);
       setProfile((current) => (current ? { ...current, followers: next.followers } : null));
+      const res = await api.getFollowers(username);
+      setFollowersList(res.followers || []);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Could not update follow status');
     }
@@ -85,6 +112,9 @@ export default function ProfilePage() {
     );
   }
 
+  const followersCount = followersList.length || (typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0);
+  const followingCount = followingList.length || (typeof profile.following === 'number' ? profile.following : profile.following?.length || 0);
+
   return (
     <div className="page container">
       <section className="profile-grid">
@@ -97,21 +127,136 @@ export default function ProfilePage() {
         <div className="profile-summary">
           <section className="profile-hero">
             <div className="mono">Thought Stream</div>
-            <h1 className="display-title display-title-xl">{profile.name}'s Ideas</h1>
+            <h1 className="display-title display-title-xl">{profile.name}'s Profile</h1>
             <p className="section-copy section-copy-lg">
-              Explore thoughts, opinions, and discussions published by @{profile.username}.
+              {profile.bio || `Explore thoughts, opinions, and discussions published by @${profile.username}.`}
             </p>
           </section>
 
-          <SectionHeading eyebrow="Published Thoughts" title="All Thoughts by This Author" />
-          <div className="profile-thoughts">
-            {thoughts.map((thought) => (
-              <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
-            ))}
-            {!thoughts.length ? (
-              <p className="empty-state">This user hasn't published any thoughts yet.</p>
-            ) : null}
+          {/* Interactive Navigation Tabs */}
+          <div style={{ display: 'flex', gap: '10px', marginTop: '20px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <button
+              className={`category-pill ${activeTab === 'thoughts' ? 'is-active' : ''}`}
+              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setActiveTab('thoughts')}
+            >
+              <span>✍️</span>
+              <span>Thoughts ({thoughts.length})</span>
+            </button>
+            <button
+              className={`category-pill ${activeTab === 'followers' ? 'is-active' : ''}`}
+              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setActiveTab('followers')}
+            >
+              <span>👥</span>
+              <span>Followers ({followersCount})</span>
+            </button>
+            <button
+              className={`category-pill ${activeTab === 'following' ? 'is-active' : ''}`}
+              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              onClick={() => setActiveTab('following')}
+            >
+              <span>✨</span>
+              <span>Following ({followingCount})</span>
+            </button>
           </div>
+
+          {/* Tab 1: Thoughts */}
+          {activeTab === 'thoughts' && (
+            <div className="profile-thoughts">
+              <SectionHeading eyebrow="Published Thoughts" title="All Thoughts by This Author" />
+              {thoughts.map((thought) => (
+                <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
+              ))}
+              {!thoughts.length ? (
+                <p className="empty-state">This user hasn't published any thoughts yet.</p>
+              ) : null}
+            </div>
+          )}
+
+          {/* Tab 2: Followers */}
+          {activeTab === 'followers' && (
+            <div>
+              <SectionHeading eyebrow="Community" title={`People Following @${profile.username}`} />
+              {followersList.length ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                  {followersList.map((follower) => {
+                    const fAvatar =
+                      follower.avatar ||
+                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(follower.name || 'User')}`;
+                    return (
+                      <div
+                        key={follower._id || follower.username}
+                        className="note-card"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img
+                            src={fAvatar}
+                            alt={follower.name}
+                            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <Link href={`/profile/${follower.username}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}>
+                              {follower.name}
+                            </Link>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>@{follower.username}</div>
+                          </div>
+                        </div>
+                        <Link href={`/profile/${follower.username}`} className="button-ghost" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
+                          View →
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="empty-state">No followers yet.</p>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Following */}
+          {activeTab === 'following' && (
+            <div>
+              <SectionHeading eyebrow="Community" title={`People @${profile.username} Follows`} />
+              {followingList.length ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
+                  {followingList.map((followed) => {
+                    const fAvatar =
+                      followed.avatar ||
+                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(followed.name || 'User')}`;
+                    return (
+                      <div
+                        key={followed._id || followed.username}
+                        className="note-card"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img
+                            src={fAvatar}
+                            alt={followed.name}
+                            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <Link href={`/profile/${followed.username}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}>
+                              {followed.name}
+                            </Link>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>@{followed.username}</div>
+                          </div>
+                        </div>
+                        <Link href={`/profile/${followed.username}`} className="button-ghost" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
+                          View →
+                        </Link>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="empty-state">Not following anyone yet.</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>
