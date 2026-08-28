@@ -1,0 +1,91 @@
+import type { AuthSession, Category, Comment, Notification, Thought, User } from '../types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+
+export type ApiError = { message: string };
+
+type RequestOptions = RequestInit & {
+  token?: string;
+};
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (!(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (options.token) {
+    headers.set('Authorization', `Bearer ${options.token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+    cache: 'no-store'
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!response.ok) {
+    throw new Error(data.message || 'Request failed');
+  }
+  return data as T;
+}
+
+export function readStoredSession(): AuthSession | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem('thoughtshare-session');
+  return raw ? (JSON.parse(raw) as AuthSession) : null;
+}
+
+export function saveStoredSession(session: AuthSession) {
+  window.localStorage.setItem('thoughtshare-session', JSON.stringify(session));
+}
+
+export function clearStoredSession() {
+  window.localStorage.removeItem('thoughtshare-session');
+}
+
+export const api = {
+  health: () => apiFetch<{ ok: boolean; service: string }>('/health'),
+  register: (payload: { name: string; username: string; email: string; password: string }) =>
+    apiFetch<AuthSession>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+  login: (payload: { identifier: string; password: string }) =>
+    apiFetch<AuthSession>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  logout: (token?: string) => apiFetch<{ message: string }>('/auth/logout', { method: 'POST', token }),
+  me: (token: string) => apiFetch<{ user: User }>('/auth/me', { token }),
+  forgotPassword: (payload: { email: string }) =>
+    apiFetch<{ message: string; previewResetUrl?: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) }),
+  resetPassword: (payload: { email: string; token: string; password: string }) =>
+    apiFetch<AuthSession>('/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
+  getThoughts: (params: Record<string, string | number | undefined> = {}) =>
+    apiFetch<{ thoughts: Thought[]; total: number }>('/thoughts?' + new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))),
+  getThought: (id: string, token?: string) => apiFetch<{ thought: Thought }>(`/thoughts/${id}`, { token }),
+  createThought: (payload: { content: string; imageUrl?: string; category: string; hashtags: string; visibility?: string }, token: string) =>
+    apiFetch<{ thought: Thought }>('/thoughts', { method: 'POST', token, body: JSON.stringify(payload) }),
+  updateThought: (id: string, payload: Partial<{ content: string; imageUrl: string; category: string; hashtags: string; visibility: string }>, token: string) =>
+    apiFetch<{ thought: Thought }>(`/thoughts/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
+  deleteThought: (id: string, token: string) => apiFetch<{ message: string }>(`/thoughts/${id}`, { method: 'DELETE', token }),
+  likeThought: (id: string, token: string) => apiFetch<{ liked: boolean; likes: number }>(`/likes/thoughts/${id}`, { method: 'POST', token }),
+  saveThought: (id: string, token: string) => apiFetch<{ saved: boolean; saves: number }>(`/thoughts/${id}/save`, { method: 'POST', token }),
+  shareThought: (id: string, token: string) => apiFetch<{ shares: number }>(`/thoughts/${id}/share`, { method: 'POST', token }),
+  searchThoughts: (q: string) => apiFetch<{ thoughts: Thought[] }>(`/thoughts/search?q=${encodeURIComponent(q)}`),
+  exploreThoughts: (page = 1) => apiFetch<{ thoughts: Thought[]; total: number }>(`/thoughts/explore/all?page=${page}`),
+  trendingThoughts: () => apiFetch<{ thoughts: Thought[] }>('/thoughts/trending/top'),
+  thoughtByCategory: (slug: string) => apiFetch<{ thoughts: Thought[] }>(`/thoughts/category/${slug}`),
+  getComments: (thoughtId: string) => apiFetch<{ comments: Comment[] }>(`/comments/thoughts/${thoughtId}`),
+  createComment: (thoughtId: string, payload: { content: string; parentComment?: string | null }, token: string) =>
+    apiFetch<{ comment: Comment }>(`/comments/thoughts/${thoughtId}`, { method: 'POST', token, body: JSON.stringify(payload) }),
+  likeComment: (id: string, token: string) => apiFetch<{ liked: boolean; likes: number }>(`/likes/comments/${id}`, { method: 'POST', token }),
+  searchUsers: (q: string) => apiFetch<{ users: User[] }>(`/users/search?q=${encodeURIComponent(q)}`),
+  getProfile: (username: string, token?: string) => apiFetch<{ profile: User; thoughts: Thought[]; isFollowing: boolean }>(`/users/${username}`, { token }),
+  updateMe: (payload: Partial<{ name: string; username: string; bio: string; avatar: string; website: string; location: string }>, token: string) =>
+    apiFetch<{ user: User }>('/users/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
+  savedThoughts: (token: string) => apiFetch<{ thoughts: Thought[] }>('/users/saved/thoughts', { token }),
+  followUser: (userId: string, token: string) => apiFetch<{ following: boolean; followers: number; followingCount: number }>(`/follows/${userId}`, { method: 'POST', token }),
+  listNotifications: (token: string) => apiFetch<{ notifications: Notification[]; unreadCount: number }>('/notifications', { token }),
+  markAllNotificationsRead: (token: string) => apiFetch<{ message: string }>('/notifications/read-all', { method: 'PATCH', token }),
+  listCategories: () => apiFetch<{ categories: Category[] }>('/categories'),
+  report: (payload: { targetType: 'thought' | 'comment' | 'user'; targetId: string; reason: string; details?: string }, token: string) =>
+    apiFetch<{ report: unknown }>('/reports', { method: 'POST', token, body: JSON.stringify(payload) })
+};

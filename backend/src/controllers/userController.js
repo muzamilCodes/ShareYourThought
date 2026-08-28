@@ -1,0 +1,130 @@
+import User from '../models/User.js';
+import Thought from '../models/Thought.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { createNotification } from '../utils/notifications.js';
+
+function safeUser(user) {
+  if (!user) return null;
+  return {
+    _id: user._id,
+    id: user._id,
+    name: user.name,
+    username: user.username,
+    email: user.email,
+    bio: user.bio,
+    avatar: user.avatar,
+    website: user.website,
+    location: user.location,
+    followers: Array.isArray(user.followers) ? user.followers.length : user.followers || 0,
+    following: Array.isArray(user.following) ? user.following.length : user.following || 0,
+    savedThoughts: Array.isArray(user.savedThoughts) ? user.savedThoughts.length : user.savedThoughts || 0,
+    role: user.role,
+    createdAt: user.createdAt
+  };
+}
+
+export const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('-password');
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  res.json({ user: safeUser(user) });
+});
+
+export const updateMe = asyncHandler(async (req, res) => {
+  const { name, username, bio, avatar, website, location } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  if (username && username.toLowerCase() !== user.username) {
+    const taken = await User.findOne({ username: username.toLowerCase(), _id: { $ne: user._id } });
+    if (taken) return res.status(409).json({ message: 'Username already taken' });
+    user.username = username.toLowerCase();
+  }
+
+  if (name !== undefined) user.name = name.trim();
+  if (bio !== undefined) user.bio = bio;
+  if (avatar !== undefined) user.avatar = avatar;
+  if (website !== undefined) user.website = website;
+  if (location !== undefined) user.location = location;
+
+  await user.save();
+  const updated = await User.findById(user._id).select('-password');
+  res.json({ user: safeUser(updated) });
+});
+
+export const searchUsers = asyncHandler(async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json({ users: [] });
+  const users = await User.find({
+    $or: [
+      { name: { $regex: q, $options: 'i' } },
+      { username: { $regex: q, $options: 'i' } },
+      { bio: { $regex: q, $options: 'i' } }
+    ]
+  }).select('-password').limit(20);
+  res.json({ users: users.map(safeUser) });
+});
+
+export const getProfile = asyncHandler(async (req, res) => {
+  const profile = await User.findOne({ username: req.params.username.toLowerCase() }).select('-password');
+  if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+  const thoughts = await Thought.find({ author: profile._id })
+    .sort({ createdAt: -1 })
+    .limit(24)
+    .populate('author', 'name username avatar bio');
+
+  const isFollowing = req.user
+    ? (profile.followers || []).some((id) => id.toString() === req.user._id.toString())
+    : false;
+
+  res.json({ profile: safeUser(profile), thoughts, isFollowing });
+});
+
+export const getSavedThoughts = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).populate({
+    path: 'savedThoughts',
+    populate: { path: 'author', select: 'name username avatar bio' }
+  });
+  res.json({ thoughts: (user?.savedThoughts || []).filter(Boolean) });
+});
+
+export const toggleFollow = asyncHandler(async (req, res) => {
+  const target = await User.findById(req.params.userId);
+  if (!target) return res.status(404).json({ message: 'User not found' });
+  if (target._id.toString() === req.user._id.toString()) {
+    return res.status(400).json({ message: 'You cannot follow yourself' });
+  }
+
+  const current = await User.findById(req.user._id);
+  const following = current.following.some((id) => id.toString() === target._id.toString());
+
+  if (following) {
+    current.following = current.following.filter((id) => id.toString() !== target._id.toString());
+    target.followers = target.followers.filter((id) => id.toString() !== current._id.toString());
+  } else {
+    current.following.push(target._id);
+    target.followers.push(current._id);
+    await createNotification({
+      recipient: target._id,
+      actor: current._id,
+      type: 'follow',
+      title: `${current.name} started following you`,
+      body: `${current.username} is now part of your thought stream.`
+    });
+  }
+
+  await Promise.all([current.save(), target.save()]);
+  res.json({ following: !following, followers: target.followers.length, followingCount: current.following.length });
+});
+
+export const getFollowers = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('followers', 'name username avatar bio');
+  if (!user) return res.status(404).json({ message: 'Profile not found' });
+  res.json({ followers: (user.followers || []).map(safeUser) });
+});
+
+export const getFollowing = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('following', 'name username avatar bio');
+  if (!user) return res.status(404).json({ message: 'Profile not found' });
+  res.json({ following: (user.following || []).map(safeUser) });
+});
