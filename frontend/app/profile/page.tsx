@@ -76,7 +76,7 @@ export default function MyProfilePage() {
           </p>
           <div className="button-row" style={{ marginTop: '24px' }}>
             <Link href="/login" className="button">
-              Login to Your Account
+              <span>👤</span> Login to Your Account
             </Link>
             <Link href="/register" className="button-outline">
               Create an Account
@@ -115,14 +115,15 @@ export default function MyProfilePage() {
               className="avatar-lg"
               src={avatarUrl}
               alt={currentUser?.name || 'Profile'}
-              style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }}
+              style={{ width: '84px', height: '84px', borderRadius: '50%', objectFit: 'cover', border: '3px solid rgba(200, 109, 52, 0.2)' }}
             />
             <div>
               <h1 className="display-title" style={{ fontSize: '2.4rem', margin: 0 }}>
                 {currentUser?.name}
               </h1>
-              <div className="profile-handle" style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '4px' }}>
-                @{currentUser?.username} {currentUser?.email ? `· ${currentUser.email}` : ''}
+              <div className="profile-handle" style={{ fontSize: '1.05rem', color: 'var(--muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>👤 @{currentUser?.username}</span>
+                {currentUser?.email ? <span>· ✉️ {currentUser.email}</span> : null}
               </div>
             </div>
           </div>
@@ -151,48 +152,54 @@ export default function MyProfilePage() {
           <div className="profile-stats" style={{ marginTop: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
             <div className="profile-stat">
               <strong>{myThoughts.length}</strong>
-              <span>My Thoughts</span>
+              <span>✍️ Thoughts</span>
             </div>
             <div className="profile-stat">
               <strong>{followersCount}</strong>
-              <span>Followers</span>
+              <span>👥 Followers</span>
             </div>
             <div className="profile-stat">
               <strong>{followingCount}</strong>
-              <span>Following</span>
+              <span>✨ Following</span>
             </div>
             <div className="profile-stat">
               <strong>{savedCount}</strong>
-              <span>Saved Posts</span>
+              <span>🔖 Saved</span>
             </div>
           </div>
 
           <div className="button-row" style={{ marginTop: '24px' }}>
-            <Link href="/settings" className="button-outline">
-              ⚙ Edit Profile & Password
+            <Link href="/create" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span>✍️</span>
+              <span>Share a Thought</span>
+            </Link>
+            <Link href="/settings" className="button-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <span>⚙️</span>
+              <span>Edit Profile</span>
             </Link>
             <button
-              className="button"
+              className="button-ghost"
               type="button"
               onClick={() => setShowCreateForm((prev) => !prev)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              {showCreateForm ? '− Hide Create Box' : '+ Share a Thought'}
+              <span>{showCreateForm ? '▲ Hide Quick Box' : '▼ Quick Thought Box'}</span>
             </button>
           </div>
         </div>
 
         <aside className="page-frame-aside">
           <div className="note-card">
-            <div className="mono">Quick Actions</div>
+            <div className="mono">✍️ Publish Anywhere</div>
             <p className="note-copy">
-              Publish new ideas directly from your profile, review your engagement, and view saved posts.
+              You can write and publish thoughts directly from this dashboard or from the main top navigation bar.
             </p>
           </div>
           <div className="note-card">
-            <div className="mono">Public Profile Link</div>
+            <div className="mono">🔗 Public Profile</div>
             <p className="note-copy">
               <Link href={`/profile/${currentUser?.username}`} style={{ textDecoration: 'underline', color: 'var(--ember)' }}>
-                View your public profile as others see it →
+                View your public thought stream →
               </Link>
             </p>
           </div>
@@ -201,13 +208,16 @@ export default function MyProfilePage() {
 
       {/* Inline Create Thought Box on Profile */}
       {showCreateForm ? (
-        <section className="section" style={{ padding: '24px', background: 'rgba(255,255,255,0.4)', borderRadius: '16px', border: '1px solid var(--line)', marginBottom: '40px' }}>
-          <div className="mono eyebrow" style={{ color: 'var(--ember)', marginBottom: '8px' }}>Create New Thought</div>
-          <h2 className="display-title" style={{ fontSize: '1.8rem', marginTop: 0 }}>
+        <section className="section" style={{ padding: '28px', background: 'rgba(255,255,255,0.5)', borderRadius: '16px', border: '1px solid var(--line)', marginBottom: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '1.2rem' }}>✍️</span>
+            <div className="mono eyebrow" style={{ color: 'var(--ember)', margin: 0 }}>Create New Thought</div>
+          </div>
+          <h2 className="display-title" style={{ fontSize: '1.8rem', marginTop: '6px', marginBottom: '8px' }}>
             Share an idea with the community
           </h2>
           <p className="section-copy" style={{ marginBottom: '20px' }}>
-            Write something thoughtful, choose a topic category, and let your perspective travel.
+            Write something thoughtful, select a topic, and publish to your public thought stream.
           </p>
           <CreateThought categories={categories} onSuccess={handleThoughtCreated} />
         </section>
@@ -219,17 +229,19 @@ export default function MyProfilePage() {
           <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
             <button
               className={`category-pill ${activeTab === 'my' ? 'is-active' : ''}`}
-              style={{ fontSize: '0.9rem', padding: '8px 20px', cursor: 'pointer' }}
+              style={{ fontSize: '0.9rem', padding: '8px 20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               onClick={() => setActiveTab('my')}
             >
-              My Published Thoughts ({myThoughts.length})
+              <span>✍️</span>
+              <span>My Published Thoughts ({myThoughts.length})</span>
             </button>
             <button
               className={`category-pill ${activeTab === 'saved' ? 'is-active' : ''}`}
-              style={{ fontSize: '0.9rem', padding: '8px 20px', cursor: 'pointer' }}
+              style={{ fontSize: '0.9rem', padding: '8px 20px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               onClick={() => setActiveTab('saved')}
             >
-              Saved & Bookmarked ({savedThoughts.length})
+              <span>🔖</span>
+              <span>Saved & Bookmarked ({savedThoughts.length})</span>
             </button>
           </div>
 
@@ -245,13 +257,14 @@ export default function MyProfilePage() {
               ) : !loading ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <p className="empty-state">You haven't published any thoughts yet.</p>
-                  <button
+                  <Link
+                    href="/create"
                     className="button"
-                    style={{ marginTop: '16px' }}
-                    onClick={() => setShowCreateForm(true)}
+                    style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                   >
-                    Write Your First Thought
-                  </button>
+                    <span>✍️</span>
+                    <span>Write Your First Thought</span>
+                  </Link>
                 </div>
               ) : (
                 <p className="empty-state">Loading your thoughts…</p>
