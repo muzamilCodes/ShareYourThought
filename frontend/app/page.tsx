@@ -6,47 +6,35 @@ import { SectionHeading } from '../components/SectionHeading';
 import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
 import { api } from '../lib/api';
-import { demoCategories, demoStats, demoThoughts } from '../lib/demo';
 import type { Category, Thought } from '../types';
 
 export default function HomePage() {
-  const [thoughts, setThoughts] = useState<Thought[]>(demoThoughts as Thought[]);
-  const [trending, setTrending] = useState<Thought[]>(demoThoughts.slice(0, 3) as Thought[]);
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
       api.getThoughts({ limit: 6 }),
-      api.trendingThoughts(),
       api.listCategories()
-    ]).then(([feed, trend, cats]) => {
-      if (feed.status === 'fulfilled' && feed.value.thoughts?.length) {
-        setThoughts(feed.value.thoughts);
-      }
-      if (trend.status === 'fulfilled' && trend.value.thoughts?.length) {
-        setTrending(trend.value.thoughts);
-      }
-      if (cats.status === 'fulfilled' && cats.value.categories?.length) {
-        setCategories(cats.value.categories);
-      }
-    });
+    ])
+      .then(([feed, cats]) => {
+        if (feed.status === 'fulfilled') {
+          setThoughts(feed.value.thoughts || []);
+          setTotalCount(feed.value.total || 0);
+        }
+        if (cats.status === 'fulfilled' && cats.value.categories?.length) {
+          setCategories(cats.value.categories);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleDeleted = (deletedId: string) => {
     setThoughts((current) => current.filter((t) => t._id !== deletedId));
-    setTrending((current) => current.filter((t) => t._id !== deletedId));
+    setTotalCount((c) => Math.max(0, c - 1));
   };
-
-  const displayCategories = categories.length
-    ? categories
-    : demoCategories.map((name) => ({
-        _id: name,
-        name,
-        slug: name.toLowerCase(),
-        description: `${name} conversations`,
-        accent: 'neutral',
-        thoughtCount: 0
-      }));
 
   return (
     <div className="page">
@@ -58,13 +46,13 @@ export default function HomePage() {
                 <div className="hero-kicker">
                   <span className="brand-mark" /> A calm editorial space for public thought
                 </div>
-                <div className="pill">Real users · real ideas</div>
+                <div className="pill">Public Thoughts · Real Discussions</div>
               </div>
               <div>
                 <h1 className="hero-headline">Share your thoughts. Let ideas travel.</h1>
                 <p className="hero-copy">
-                  ThoughtShare is a social platform where people publish reflections, discover new
-                  perspectives, and connect through conversation without algorithm noise.
+                  ThoughtShare is an authentic publishing platform where people share reflections, discover new
+                  perspectives, and connect through thoughtful conversation.
                 </p>
                 <div className="hero-actions">
                   <Link href="/create" className="button">
@@ -76,12 +64,18 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="hero-stat-grid">
-                {demoStats.map((stat) => (
-                  <div className="stat-card" key={stat.label}>
-                    <div className="stat-value">{stat.value}</div>
-                    <div className="stat-label">{stat.label}</div>
-                  </div>
-                ))}
+                <div className="stat-card">
+                  <div className="stat-value">{totalCount}</div>
+                  <div className="stat-label">Published Thoughts</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">{categories.length}</div>
+                  <div className="stat-label">Active Topics</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-value">100%</div>
+                  <div className="stat-label">Real Data & Users</div>
+                </div>
               </div>
             </div>
           </Reveal>
@@ -162,16 +156,27 @@ export default function HomePage() {
         <div className="container">
           <SectionHeading
             eyebrow="Thought showcase"
-            title="Real posts, composed with clarity."
-            copy="Minimal cards keep the writing and the author first, while the interface stays calm and premium."
+            title="Recent thoughts published by the community."
+            copy="Minimal cards keep the writing and the author first, while the interface stays calm and focused."
           />
-          <div className="thought-grid">
-            {thoughts.map((thought) => (
-              <Reveal key={thought._id}>
-                <ThoughtCard thought={thought} onDeleted={handleDeleted} />
-              </Reveal>
-            ))}
-          </div>
+          {thoughts.length ? (
+            <div className="thought-grid">
+              {thoughts.map((thought) => (
+                <Reveal key={thought._id}>
+                  <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+                </Reveal>
+              ))}
+            </div>
+          ) : !loading ? (
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <p className="empty-state">No thoughts have been published yet.</p>
+              <div style={{ marginTop: '16px' }}>
+                <Link href="/create" className="button">
+                  Be the First to Publish a Thought
+                </Link>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
@@ -180,20 +185,22 @@ export default function HomePage() {
           <div className="community-card">
             <div className="section-top">
               <div>
-                <div className="mono">Community</div>
-                <h2 className="display-title display-title-xl">People sharing genuine ideas.</h2>
+                <div className="mono">Community Topics</div>
+                <h2 className="display-title display-title-xl">Explore perspectives across categories.</h2>
               </div>
-              <Link href="/register" className="button">
-                Join ThoughtShare
+              <Link href="/create" className="button">
+                Share a Thought
               </Link>
             </div>
-            <div className="category-row" style={{ marginTop: '24px' }}>
-              {displayCategories.map((cat) => (
-                <Link key={cat.slug} href="/explore" className="category-pill">
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
+            {categories.length ? (
+              <div className="category-row" style={{ marginTop: '24px' }}>
+                {categories.map((cat) => (
+                  <Link key={cat.slug} href="/explore" className="category-pill">
+                    #{cat.name} ({cat.thoughtCount || 0})
+                  </Link>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

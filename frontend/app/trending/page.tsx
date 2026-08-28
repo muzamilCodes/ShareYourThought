@@ -1,22 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { SectionHeading } from '../../components/SectionHeading';
 import { ThoughtCard } from '../../components/ThoughtCard';
 import { api } from '../../lib/api';
-import { demoThoughts } from '../../lib/demo';
 import type { Thought } from '../../types';
 
 export default function TrendingPage() {
-  const [thoughts, setThoughts] = useState<Thought[]>(demoThoughts.slice(0, 3) as Thought[]);
+  const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.trendingThoughts()
       .then((data) => {
-        if (data.thoughts?.length) setThoughts(data.thoughts);
+        setThoughts(data.thoughts || []);
       })
-      .catch(() => undefined)
+      .catch(() => setThoughts([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,17 +37,25 @@ export default function TrendingPage() {
       <section className="section-dark">
         <div className="container">
           <SectionHeading eyebrow="Top Momentum" title="Currently Popular Thoughts" />
-          <div className="list-grid">
-            {thoughts.map((thought, index) => (
-              <div key={thought._id} className="trend-card">
-                <div className="mono" style={{ color: 'var(--ember)', fontWeight: 600 }}>Rank #{index + 1}</div>
-                <ThoughtCard thought={thought} compact onDeleted={handleDeleted} />
+          {thoughts.length ? (
+            <div className="list-grid">
+              {thoughts.map((thought, index) => (
+                <div key={thought._id} className="trend-card">
+                  <div className="mono" style={{ color: 'var(--ember)', fontWeight: 600 }}>Rank #{index + 1}</div>
+                  <ThoughtCard thought={thought} compact onDeleted={handleDeleted} />
+                </div>
+              ))}
+            </div>
+          ) : !loading ? (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <p className="empty-state">No trending thoughts yet. Publish and interact with thoughts to see them trend.</p>
+              <div style={{ marginTop: '16px' }}>
+                <Link href="/create" className="button">
+                  Share a Thought
+                </Link>
               </div>
-            ))}
-            {!thoughts.length && !loading ? (
-              <p className="empty-state">No trending thoughts yet.</p>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>
