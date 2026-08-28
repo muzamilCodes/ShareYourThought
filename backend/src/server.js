@@ -4,14 +4,18 @@ import env from './config/env.js';
 import { seedCategories } from './utils/seedCategories.js';
 
 async function startServer() {
-  await connectDB();
-  await seedCategories();
-  app.listen(env.port, () => {
-    console.log(`ThoughtShare API running on port ${env.port} in ${env.nodeEnv} mode`);
+  // Attempt MongoDB connection
+  try {
+    await connectDB();
+    await seedCategories();
+  } catch (error) {
+    console.error('⚠️ MongoDB connection failed on startup:', error.message);
+    console.log('ℹ️ Server will continue running to serve health checks. Please check your MONGO_URI credentials in Render Environment variables.');
+  }
+
+  app.listen(env.port, '0.0.0.0', () => {
+    console.log(`🚀 ThoughtShare API running on port ${env.port} in ${env.nodeEnv} mode`);
   });
 }
 
-startServer().catch((error) => {
-  console.error('Server failed to start', error);
-  process.exit(1);
-});
+startServer();
