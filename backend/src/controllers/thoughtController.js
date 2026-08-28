@@ -30,16 +30,30 @@ function thoughtScore(thought) {
   return likesCount * 2.5 + comments * 3 + shares * 1.5 + featured + 8 / Math.sqrt(ageHours);
 }
 
+async function findOrCreateCategory(categoryInput) {
+  const cleanName = String(categoryInput || 'General').trim();
+  const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'general';
+  
+  let categoryDoc = await Category.findOne({ $or: [{ slug }, { name: new RegExp(`^${cleanName}$`, 'i') }] });
+  if (!categoryDoc) {
+    categoryDoc = await Category.create({
+      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+      slug,
+      description: `${cleanName} thoughts and discussions.`,
+      accent: 'neutral',
+      thoughtCount: 0
+    });
+  }
+  return categoryDoc;
+}
+
 export const createThought = asyncHandler(async (req, res) => {
   const { content, imageUrl, category, hashtags, visibility } = req.body;
   if (!content || !String(content).trim() || !category) {
     return res.status(400).json({ message: 'Content and category are required' });
   }
 
-  const categoryDoc = await Category.findOne({ slug: String(category).trim().toLowerCase() });
-  if (!categoryDoc) {
-    return res.status(400).json({ message: 'Category does not exist' });
-  }
+  const categoryDoc = await findOrCreateCategory(category);
 
   const thought = await Thought.create({
     author: req.user._id,
@@ -86,13 +100,22 @@ export const getThought = asyncHandler(async (req, res) => {
 export const updateThought = asyncHandler(async (req, res) => {
   const thought = await Thought.findById(req.params.id);
   if (!thought) return res.status(404).json({ message: 'Thought not found' });
-  if (thought.author.toString() !== req.user._id.toString()) {
+  if (thought.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'You can only edit your own thought' });
   }
 
   if (req.body.content !== undefined) thought.content = String(req.body.content).trim();
   if (req.body.imageUrl !== undefined) thought.imageUrl = String(req.body.imageUrl).trim();
-  if (req.body.category) thought.category = String(req.body.category).toLowerCase();
+  if (req.body.category) {
+    const oldCategory = thought.category;
+    const newCategoryDoc = await findOrCreateCategory(req.body.category);
+    thought.category = newCategoryDoc.slug;
+
+    if (oldCategory !== newCategoryDoc.slug) {
+      await Category.updateOne({ slug: oldCategory }, { $inc: { thoughtCount: -1 } });
+      await Category.updateOne({ slug: newCategoryDoc.slug }, { $inc: { thoughtCount: 1 } });
+    }
+  }
   if (req.body.hashtags !== undefined) thought.hashtags = parseHashtags(req.body.hashtags);
   if (req.body.visibility !== undefined) thought.visibility = req.body.visibility === 'followers' ? 'followers' : 'public';
   await thought.save();

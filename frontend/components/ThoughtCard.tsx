@@ -24,6 +24,7 @@ export function ThoughtCard({
   onDeleted?: (id: string) => void;
 }) {
   const { session, ready } = useSession();
+  const [currentThought, setCurrentThought] = useState<Thought>(thought);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likes, setLikes] = useState(thought.likes?.length || 0);
@@ -32,27 +33,45 @@ export function ThoughtCard({
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Three-dots menu & Edit mode state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(thought.content);
+  const [editCategory, setEditCategory] = useState(thought.category);
+  const [editImageUrl, setEditImageUrl] = useState(thought.imageUrl || '');
+  const [editHashtags, setEditHashtags] = useState((thought.hashtags || []).join(', '));
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
+
   const currentUserId = session?.user?._id || session?.user?.id;
   const isAuthor = Boolean(
     currentUserId &&
-      (thought.author?._id === currentUserId ||
-        thought.author?.id === currentUserId ||
-        (typeof thought.author === 'string' && thought.author === currentUserId))
+      (currentThought.author?._id === currentUserId ||
+        currentThought.author?.id === currentUserId ||
+        (typeof currentThought.author === 'string' && currentThought.author === currentUserId))
   );
 
   useEffect(() => {
+    setCurrentThought(thought);
+    setEditContent(thought.content);
+    setEditCategory(thought.category);
+    setEditImageUrl(thought.imageUrl || '');
+    setEditHashtags((thought.hashtags || []).join(', '));
+  }, [thought]);
+
+  useEffect(() => {
     if (!ready || !currentUserId) return;
-    const isLiked = (thought.likes || []).some((item) => {
+    const isLiked = (currentThought.likes || []).some((item) => {
       const id = typeof item === 'string' ? item : item?._id || item?.id;
       return id === currentUserId;
     });
-    const isSaved = (thought.saves || []).some((item) => {
+    const isSaved = (currentThought.saves || []).some((item) => {
       const id = typeof item === 'string' ? item : item?._id || item?.id;
       return id === currentUserId;
     });
     setLiked(Boolean(isLiked));
     setSaved(Boolean(isSaved));
-  }, [ready, currentUserId, thought.likes, thought.saves]);
+  }, [ready, currentUserId, currentThought.likes, currentThought.saves]);
 
   const token = session?.token;
 
@@ -62,11 +81,11 @@ export function ThoughtCard({
       return;
     }
     try {
-      const next = await api.likeThought(thought._id, token);
+      const next = await api.likeThought(currentThought._id, token);
       setLiked(next.liked);
       setLikes(next.likes);
     } catch {
-      // ignore error
+      // ignore
     }
   };
 
@@ -76,26 +95,32 @@ export function ThoughtCard({
       return;
     }
     try {
-      const next = await api.saveThought(thought._id, token);
+      const next = await api.saveThought(currentThought._id, token);
       setSaved(next.saved);
       setSaves(next.saves);
     } catch {
-      // ignore error
+      // ignore
     }
   };
 
   const handleShare = async () => {
     if (token) {
       try {
-        const next = await api.shareThought(thought._id, token);
+        const next = await api.shareThought(currentThought._id, token);
         setShares(next.shares);
       } catch {
         // ignore
       }
     }
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/thought/${thought._id}` : '';
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/thought/${currentThought._id}` : '';
     if (navigator.share) {
-      navigator.share({ title: thought.author?.name || 'Thought', text: thought.content, url: shareUrl }).catch(() => undefined);
+      navigator
+        .share({
+          title: currentThought.author?.name || 'Thought',
+          text: currentThought.content,
+          url: shareUrl
+        })
+        .catch(() => undefined);
     } else if (navigator.clipboard && shareUrl) {
       navigator.clipboard.writeText(shareUrl).then(() => {
         setCopied(true);
@@ -105,24 +130,57 @@ export function ThoughtCard({
   };
 
   const handleDelete = async () => {
+    setMenuOpen(false);
     if (!token || !confirm('Are you sure you want to delete this thought?')) return;
     setDeleting(true);
     try {
-      await api.deleteThought(thought._id, token);
-      onDeleted?.(thought._id);
+      await api.deleteThought(currentThought._id, token);
+      onDeleted?.(currentThought._id);
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Could not delete thought');
       setDeleting(false);
     }
   };
 
-  const authorName = thought.author?.name || 'Anonymous';
-  const authorUsername = thought.author?.username || 'user';
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    if (!editContent.trim()) {
+      setEditError('Content cannot be empty');
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError('');
+
+    try {
+      const updated = await api.updateThought(
+        currentThought._id,
+        {
+          content: editContent.trim(),
+          category: editCategory.trim(),
+          imageUrl: editImageUrl.trim(),
+          hashtags: editHashtags
+        },
+        token
+      );
+      setCurrentThought(updated.thought);
+      setIsEditing(false);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to update thought');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const authorName = currentThought.author?.name || 'Anonymous';
+  const authorUsername = currentThought.author?.username || 'user';
   const authorAvatar =
-    thought.author?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
+    currentThought.author?.avatar ||
+    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
 
   return (
-    <article className="thought-card" id={`thought-${thought._id}`}>
+    <article className="thought-card" id={`thought-${currentThought._id}`} style={{ position: 'relative' }}>
       <div className="thought-top">
         <div className="brand-lockup">
           <img className="avatar" src={authorAvatar} alt={authorName} />
@@ -131,66 +189,216 @@ export function ThoughtCard({
               {authorName}
             </Link>
             <div className="thought-meta">
-              @{authorUsername} · {formatDate(thought.createdAt)}
+              @{authorUsername} · {formatDate(currentThought.createdAt)}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="pill">{thought.category}</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+          <span className="pill">#{currentThought.category}</span>
+
+          {/* Three-dots Menu for Author */}
           {isAuthor ? (
-            <button
-              className="button-ghost"
-              style={{ fontSize: '0.75rem', padding: '4px 8px', color: '#c86d34' }}
-              onClick={handleDelete}
-              disabled={deleting}
-              title="Delete thought"
-            >
-              {deleting ? '…' : '✕'}
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="button-ghost"
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '1.2rem',
+                  lineHeight: '1',
+                  borderRadius: '6px'
+                }}
+                onClick={() => setMenuOpen((prev) => !prev)}
+                title="Options"
+              >
+                ⋮
+              </button>
+
+              {menuOpen ? (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                    onClick={() => setMenuOpen(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '100%',
+                      marginTop: '4px',
+                      backgroundColor: 'var(--paper)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '4px',
+                      zIndex: 20,
+                      minWidth: '130px'
+                    }}
+                  >
+                    <button
+                      type="button"
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 12px',
+                        fontSize: '0.85rem',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderRadius: '4px',
+                        color: 'inherit'
+                      }}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setIsEditing(true);
+                      }}
+                    >
+                      <span>✏️</span> Edit Thought
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 12px',
+                        fontSize: '0.85rem',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderRadius: '4px',
+                        color: '#c86d34'
+                      }}
+                      onClick={handleDelete}
+                      disabled={deleting}
+                    >
+                      <span>🗑️</span> {deleting ? 'Deleting…' : 'Delete Thought'}
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
 
-      <p className="thought-body">{compact && thought.content.length > 180 ? `${thought.content.slice(0, 180)}…` : thought.content}</p>
+      {/* Inline Edit Form Mode */}
+      {isEditing ? (
+        <form onSubmit={handleSaveEdit} style={{ marginTop: '16px' }}>
+          <div className="field">
+            <textarea
+              className="textarea"
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={4}
+              required
+              autoFocus
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
+            <div className="field">
+              <label style={{ fontSize: '0.8rem' }}>Category</label>
+              <input
+                className="input"
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                placeholder="e.g. Life, Tech"
+                required
+              />
+            </div>
+            <div className="field">
+              <label style={{ fontSize: '0.8rem' }}>Hashtags</label>
+              <input
+                className="input"
+                value={editHashtags}
+                onChange={(e) => setEditHashtags(e.target.value)}
+                placeholder="tag1, tag2"
+              />
+            </div>
+          </div>
+          <div className="field" style={{ marginTop: '10px' }}>
+            <label style={{ fontSize: '0.8rem' }}>Image URL (Optional)</label>
+            <input
+              className="input"
+              value={editImageUrl}
+              onChange={(e) => setEditImageUrl(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
 
-      {thought.imageUrl ? (
-        <div style={{ marginTop: '14px', borderRadius: '12px', overflow: 'hidden' }}>
-          <img className="thought-image" src={thought.imageUrl} alt="Thought attachment" loading="lazy" />
-        </div>
-      ) : null}
+          {editError ? <p className="helper" style={{ color: '#c86d34' }}>{editError}</p> : null}
 
-      {thought.hashtags?.length ? (
-        <div className="hashtag-row">
-          {thought.hashtags.map((tag) => (
-            <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`} className="hashtag">
-              #{tag}
+          <div className="form-actions" style={{ marginTop: '14px' }}>
+            <button className="button" type="submit" disabled={savingEdit}>
+              {savingEdit ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button
+              className="button-outline"
+              type="button"
+              onClick={() => {
+                setIsEditing(false);
+                setEditContent(currentThought.content);
+                setEditCategory(currentThought.category);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p className="thought-body">
+            {compact && currentThought.content.length > 180
+              ? `${currentThought.content.slice(0, 180)}…`
+              : currentThought.content}
+          </p>
+
+          {currentThought.imageUrl ? (
+            <div style={{ marginTop: '14px', borderRadius: '12px', overflow: 'hidden' }}>
+              <img className="thought-image" src={currentThought.imageUrl} alt="Thought attachment" loading="lazy" />
+            </div>
+          ) : null}
+
+          {currentThought.hashtags?.length ? (
+            <div className="hashtag-row">
+              {currentThought.hashtags.map((tag) => (
+                <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`} className="hashtag">
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="thought-actions">
+            <button
+              className={`thought-action ${liked ? 'is-active' : ''}`}
+              onClick={handleLike}
+              title={liked ? 'Unlike' : 'Like'}
+            >
+              {liked ? '♥' : '♡'} {likes}
+            </button>
+            <Link className="thought-action" href={`/thought/${currentThought._id}`} title="Comments">
+              💬 {currentThought.commentsCount || 0}
             </Link>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="thought-actions">
-        <button
-          className={`thought-action ${liked ? 'is-active' : ''}`}
-          onClick={handleLike}
-          title={liked ? 'Unlike' : 'Like'}
-        >
-          {liked ? '♥' : '♡'} {likes}
-        </button>
-        <Link className="thought-action" href={`/thought/${thought._id}`} title="Comments">
-          💬 {thought.commentsCount || 0}
-        </Link>
-        <button className="thought-action" onClick={handleShare} title="Share thought">
-          {copied ? '✓ Copied' : `↗ ${shares}`}
-        </button>
-        <button
-          className={`thought-action ${saved ? 'is-active' : ''}`}
-          onClick={handleSave}
-          title={saved ? 'Unsave' : 'Save'}
-        >
-          {saved ? '▣' : '▢'} {saves}
-        </button>
-      </div>
+            <button className="thought-action" onClick={handleShare} title="Share thought">
+              {copied ? '✓ Copied' : `↗ ${shares}`}
+            </button>
+            <button
+              className={`thought-action ${saved ? 'is-active' : ''}`}
+              onClick={handleSave}
+              title={saved ? 'Unsave' : 'Save'}
+            >
+              {saved ? '▣' : '▢'} {saves}
+            </button>
+          </div>
+        </>
+      )}
     </article>
   );
 }
@@ -233,7 +441,15 @@ export function ProfileCard({
       {profile.location ? <p className="meta" style={{ marginTop: '-8px' }}>📍 {profile.location}</p> : null}
       {profile.website ? (
         <p className="meta" style={{ marginTop: '-4px' }}>
-          🔗 <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>{profile.website}</a>
+          🔗{' '}
+          <a
+            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+            target="_blank"
+            rel="noreferrer"
+            style={{ textDecoration: 'underline' }}
+          >
+            {profile.website}
+          </a>
         </p>
       ) : null}
       <div className="profile-stats">

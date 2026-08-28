@@ -66,10 +66,6 @@ export function Navbar() {
 
           {ready && session ? (
             <>
-              <Link className="button" href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span>✍️</span>
-                <span>Share a Thought</span>
-              </Link>
               <Link className="button-ghost" href="/notifications" title="Notifications" style={{ padding: '8px 12px' }}>
                 🔔
               </Link>
@@ -86,9 +82,8 @@ export function Navbar() {
               <Link className="button-ghost" href="/login">
                 Login
               </Link>
-              <Link className="button" href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span>✍️</span>
-                <span>Share a Thought</span>
+              <Link className="button-outline" href="/register">
+                Register
               </Link>
             </>
           ) : null}
