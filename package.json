@@ -1,0 +1,15 @@
+{
+  "name": "share-your-thought",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ThoughtShare — Social Editorial Thought Sharing Platform",
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "build": "npm --prefix backend install",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

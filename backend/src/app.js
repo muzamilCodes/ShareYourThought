@@ -19,7 +19,27 @@ import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
-app.use(cors({ origin: env.clientUrl, credentials: true }));
+// Flexible CORS for local development and cloud deployments
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, postman) or matching client URLs
+      if (
+        !origin ||
+        env.clientUrl === '*' ||
+        origin === env.clientUrl ||
+        env.clientUrl.split(',').map((s) => s.trim()).includes(origin) ||
+        env.nodeEnv !== 'production'
+      ) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true
+  })
+);
+
 app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -54,15 +74,19 @@ app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 250,
+    limit: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: 'Too many requests, please try again later' }
   })
 );
 
+app.get('/', (_req, res) => {
+  res.json({ ok: true, service: 'ThoughtShare API is running', documentation: '/api/health' });
+});
+
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'thoughtshare-api' });
+  res.json({ ok: true, service: 'thoughtshare-api', status: 'healthy' });
 });
 
 app.use('/api/auth', authRoutes);
