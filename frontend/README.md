@@ -1,23 +1,32 @@
-# QuickServices Frontend
+# ThoughtShare Frontend
 
-This is a Next.js frontend scaffold for the QuickServices platform.
+A Next.js frontend with editorial styling for ThoughtShare.
 
-## Run
+## Features
+- **Editorial UI**: Halden-inspired typography, calm color palettes, and responsive layouts.
+- **Client Session Management**: JWT token storage, reactive session updates, and hydration-safe rendering.
+- **Thought Interactions**: Live liking, bookmarks/saves, copy-link shares, category filtering, and searches.
+- **Profile & Social Feed**: User profile view, followers/following counters, follow/unfollow toggle, and author thoughts stream.
+- **Discussions**: Threaded comment sections and replies.
+- **Notification Inbox**: Activity stream for likes, comments, replies, and new followers.
+- **Settings & Password Reset**: Profile details editing and token-based password reset.
 
-```bash
-npm install
-copy .env.local.example .env.local
-npm run dev
-```
+## Run Locally
 
-Open:
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-http://localhost:3000
-```
+2. **Environment Variables**:
+   Copy `.env.local.example` to `.env.local`:
+   ```bash
+   copy .env.local.example .env.local
+   ```
 
-## Notes
+3. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-- Paste a real backend access token into the UI to test OTP booking flow.
-- API base URL is controlled by `NEXT_PUBLIC_API_BASE_URL`.
-- Current page is a polished booking UI scaffold, not a full auth app yet.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
