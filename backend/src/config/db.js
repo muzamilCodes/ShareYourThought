@@ -7,6 +7,13 @@ export default async function connectDB() {
   }
 
   mongoose.set('strictQuery', true);
-  await mongoose.connect(env.mongoUri);
-  console.log('MongoDB connected');
+  try {
+    await mongoose.connect(env.mongoUri, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    throw error;
+  }
 }

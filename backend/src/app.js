@@ -4,7 +4,6 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
 import env from './config/env.js';
 import { notFoundHandler } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -25,9 +24,42 @@ app.use(helmet());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(mongoSanitize());
+
+// Express 5 compatible NoSQL injection sanitizer
+function sanitizeData(data) {
+  if (!data || typeof data !== 'object') return data;
+  if (Array.isArray(data)) {
+    for (let i = 0; i < data.length; i++) {
+      sanitizeData(data[i]);
+    }
+    return data;
+  }
+  for (const key of Object.keys(data)) {
+    if (key.startsWith('$') || key.includes('.')) {
+      delete data[key];
+    } else if (typeof data[key] === 'object' && data[key] !== null) {
+      sanitizeData(data[key]);
+    }
+  }
+  return data;
+}
+
+app.use((req, _res, next) => {
+  if (req.body) sanitizeData(req.body);
+  if (req.params) sanitizeData(req.params);
+  next();
+});
+
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 250, standardHeaders: true, legacyHeaders: false }));
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 250,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests, please try again later' }
+  })
+);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'thoughtshare-api' });

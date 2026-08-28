@@ -12,6 +12,7 @@ export function AuthForm({ mode, onSuccess }: { mode: 'login' | 'register'; onSu
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [event.target.name]: event.target.value });
+    if (error) setError('');
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -26,11 +27,16 @@ export function AuthForm({ mode, onSuccess }: { mode: 'login' | 'register'; onSu
         if (!identifier.trim()) {
           throw new Error('Please enter your email or username');
         }
+        if (!form.password) {
+          throw new Error('Please enter your password');
+        }
         session = await api.login({ identifier: identifier.trim(), password: form.password });
       } else {
-        if (!form.name.trim() || !form.username.trim() || !form.email.trim() || !form.password) {
-          throw new Error('Please fill in all fields');
-        }
+        if (!form.name.trim()) throw new Error('Full Name is required');
+        if (!form.username.trim()) throw new Error('Username is required');
+        if (!form.email.trim()) throw new Error('Email address is required');
+        if (!form.password || form.password.length < 8) throw new Error('Password must be at least 8 characters');
+
         session = await api.register({
           name: form.name.trim(),
           username: form.username.trim(),
@@ -54,19 +60,60 @@ export function AuthForm({ mode, onSuccess }: { mode: 'login' | 'register'; onSu
 
   return (
     <form className="form-grid" onSubmit={handleSubmit}>
+      {error ? (
+        <div
+          style={{
+            padding: '12px 16px',
+            backgroundColor: 'rgba(200, 109, 52, 0.1)',
+            border: '1px solid rgba(200, 109, 52, 0.3)',
+            borderRadius: '8px',
+            color: '#b34714',
+            fontSize: '0.9rem',
+            lineHeight: '1.4'
+          }}
+        >
+          {error}
+        </div>
+      ) : null}
+
       {mode === 'register' ? (
         <>
           <div className="field">
             <label htmlFor="name">Full Name</label>
-            <input className="input" id="name" name="name" value={form.name} onChange={handleChange} placeholder="Mina Hart" required />
+            <input
+              className="input"
+              id="name"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="e.g. Mina Hart"
+              required
+            />
           </div>
           <div className="field">
             <label htmlFor="username">Username</label>
-            <input className="input" id="username" name="username" value={form.username} onChange={handleChange} placeholder="minahart" required />
+            <input
+              className="input"
+              id="username"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="e.g. minahart"
+              required
+            />
           </div>
           <div className="field">
             <label htmlFor="email">Email</label>
-            <input className="input" id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="name@domain.com" required />
+            <input
+              className="input"
+              id="email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="name@domain.com"
+              required
+            />
           </div>
         </>
       ) : (
@@ -109,8 +156,6 @@ export function AuthForm({ mode, onSuccess }: { mode: 'login' | 'register'; onSu
           {mode === 'login' ? 'Need an account?' : 'Already have one?'}
         </Link>
       </div>
-
-      {error ? <p className="helper" style={{ color: '#c86d34', fontWeight: 500 }}>{error}</p> : null}
     </form>
   );
 }
