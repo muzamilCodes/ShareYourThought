@@ -331,9 +331,9 @@ export default function MyProfilePage() {
       ) : null}
 
       {/* Tab Navigation: Thoughts | Followers | Following | Saved */}
-      <section className="section-dark" style={{ borderRadius: '16px', padding: '32px 24px', marginTop: '24px' }}>
-        <div className="container">
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px', flexWrap: 'wrap' }}>
+      <section className="section" style={{ borderRadius: '20px', padding: '28px 20px', marginTop: '24px', background: '#ffffff', border: '1px solid var(--line)', boxShadow: 'var(--shadow)' }}>
+        <div>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', borderBottom: '1px solid var(--line)', paddingBottom: '16px', flexWrap: 'wrap' }}>
             <button
               className={`category-pill ${activeTab === 'thoughts' ? 'is-active' : ''}`}
               style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}

@@ -101,7 +101,7 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
         </div>
       </section>
 
-      <section className="section-dark">
+      <section className="section">
         <div className="container">
           <SectionHeading eyebrow="Thoughts" title="Posts matching your search." />
           <div className="thought-grid">

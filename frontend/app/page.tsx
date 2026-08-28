@@ -54,9 +54,9 @@ export default function HomePage() {
                   ThoughtShare is an authentic publishing platform where people share reflections, discover new
                   perspectives, and connect through thoughtful conversation.
                 </p>
-                <div className="hero-actions">
+                <div className="hero-actions" style={{ marginTop: '20px' }}>
                   <Link href="/create" className="button">
-                    Share a Thought
+                    ✍️ Share a Thought
                   </Link>
                   <Link href="/explore" className="button-outline">
                     Explore Thoughts
@@ -119,7 +119,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section-dark">
+      <section className="section">
         <div className="container">
           <SectionHeading
             eyebrow="Editorial panels"
@@ -180,7 +180,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section-dark">
+      <section className="section">
         <div className="container">
           <div className="community-card">
             <div className="section-top">
@@ -189,7 +189,7 @@ export default function HomePage() {
                 <h2 className="display-title display-title-xl">Explore perspectives across categories.</h2>
               </div>
               <Link href="/create" className="button">
-                Share a Thought
+                ✍️ Share a Thought
               </Link>
             </div>
             {categories.length ? (

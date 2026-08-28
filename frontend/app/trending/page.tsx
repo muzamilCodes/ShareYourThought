@@ -34,14 +34,14 @@ export default function TrendingPage() {
         </p>
       </section>
 
-      <section className="section-dark">
+      <section className="section">
         <div className="container">
           <SectionHeading eyebrow="Top Momentum" title="Currently Popular Thoughts" />
           {thoughts.length ? (
             <div className="list-grid">
               {thoughts.map((thought, index) => (
                 <div key={thought._id} className="trend-card">
-                  <div className="mono" style={{ color: 'var(--ember)', fontWeight: 600 }}>Rank #{index + 1}</div>
+                  <div className="mono" style={{ color: 'var(--ember)', fontWeight: 700 }}>Rank #{index + 1}</div>
                   <ThoughtCard thought={thought} compact onDeleted={handleDeleted} />
                 </div>
               ))}
@@ -51,7 +51,7 @@ export default function TrendingPage() {
               <p className="empty-state">No trending thoughts yet. Publish and interact with thoughts to see them trend.</p>
               <div style={{ marginTop: '16px' }}>
                 <Link href="/create" className="button">
-                  Share a Thought
+                  ✍️ Share a Thought
                 </Link>
               </div>
             </div>

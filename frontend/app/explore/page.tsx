@@ -77,7 +77,7 @@ export default function ExplorePage() {
                 className="category-card"
                 style={{
                   cursor: 'pointer',
-                  border: active === category.slug ? '1px solid var(--ember)' : undefined
+                  border: active === category.slug ? '2px solid var(--ember)' : undefined
                 }}
                 onClick={() => handleCategorySelect(category.slug)}
               >
@@ -93,7 +93,7 @@ export default function ExplorePage() {
         </section>
       ) : null}
 
-      <section className="section-dark" id="explore-feed">
+      <section className="section" id="explore-feed">
         <div className="container">
           <SectionHeading
             eyebrow="Explore Feed"
@@ -114,7 +114,7 @@ export default function ExplorePage() {
               </p>
               <div style={{ marginTop: '16px' }}>
                 <Link href="/create" className="button">
-                  Publish a Thought
+                  ✍️ Publish a Thought
                 </Link>
               </div>
             </div>
