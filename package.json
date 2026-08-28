@@ -7,7 +7,7 @@
   "main": "backend/src/server.js",
   "scripts": {
     "start": "node backend/src/server.js",
-    "build": "npm --prefix backend install",
+    "build": "cd frontend && npm install && npm run build",
     "dev": "npm --prefix backend run dev"
   },
   "dependencies": {
