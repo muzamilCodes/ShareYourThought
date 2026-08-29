@@ -70,9 +70,13 @@ export const getProfile = asyncHandler(async (req, res) => {
   const profile = await User.findOne({ username: req.params.username.toLowerCase() }).select('-password');
   if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-  const isSelf = req.user && req.user._id.toString() === profile._id.toString();
-  const isFollowing = req.user
-    ? (profile.followers || []).some((id) => id.toString() === req.user._id.toString())
+  const currentUserIdStr = req.user?._id ? req.user._id.toString() : '';
+  const isSelf = currentUserIdStr === profile._id.toString();
+  const isFollowing = currentUserIdStr
+    ? (profile.followers || []).some((id) => id.toString() === currentUserIdStr)
+    : false;
+  const isRequested = currentUserIdStr
+    ? (profile.followRequests || []).some((id) => id.toString() === currentUserIdStr)
     : false;
 
   // Private Account Protection
@@ -82,7 +86,8 @@ export const getProfile = asyncHandler(async (req, res) => {
     return res.json({
       profile: safeUser(profile),
       thoughts: [],
-      isFollowing,
+      isFollowing: false,
+      isRequested,
       isPrivateLocked: true
     });
   }
@@ -96,6 +101,7 @@ export const getProfile = asyncHandler(async (req, res) => {
     profile: safeUser(profile),
     thoughts,
     isFollowing,
+    isRequested: false,
     isPrivateLocked: false
   });
 });
@@ -116,25 +122,122 @@ export const toggleFollow = asyncHandler(async (req, res) => {
   }
 
   const current = await User.findById(req.user._id);
-  const following = current.following.some((id) => id.toString() === target._id.toString());
+  const isFollowing = current.following.some((id) => id.toString() === target._id.toString());
+  const isRequested = (target.followRequests || []).some((id) => id.toString() === current._id.toString());
 
-  if (following) {
+  // 1. If currently following: UNFOLLOW
+  if (isFollowing) {
     current.following = current.following.filter((id) => id.toString() !== target._id.toString());
     target.followers = target.followers.filter((id) => id.toString() !== current._id.toString());
-  } else {
-    current.following.push(target._id);
-    target.followers.push(current._id);
-    await createNotification({
-      recipient: target._id,
-      actor: current._id,
-      type: 'follow',
-      title: `${current.name} started following you`,
-      body: `${current.username} is now part of your thought stream.`
+    await Promise.all([current.save(), target.save()]);
+    return res.json({
+      following: false,
+      requested: false,
+      followers: target.followers.length,
+      followingCount: current.following.length
     });
   }
 
+  // 2. If target account is PRIVATE:
+  if (target.isPrivate) {
+    if (isRequested) {
+      // Cancel follow request
+      target.followRequests = (target.followRequests || []).filter((id) => id.toString() !== current._id.toString());
+      await target.save();
+      return res.json({
+        following: false,
+        requested: false,
+        followers: target.followers.length,
+        followingCount: current.following.length
+      });
+    } else {
+      // Send follow request
+      if (!target.followRequests) target.followRequests = [];
+      target.followRequests.push(current._id);
+      await target.save();
+      await createNotification({
+        recipient: target._id,
+        actor: current._id,
+        type: 'follow_request',
+        title: `${current.name} requested to follow you`,
+        body: `@${current.username} wants to view your private thoughts and profile.`
+      });
+      return res.json({
+        following: false,
+        requested: true,
+        followers: target.followers.length,
+        followingCount: current.following.length
+      });
+    }
+  }
+
+  // 3. If target account is PUBLIC: Immediate follow
+  current.following.push(target._id);
+  target.followers.push(current._id);
+  await createNotification({
+    recipient: target._id,
+    actor: current._id,
+    type: 'follow',
+    title: `${current.name} started following you`,
+    body: `${current.username} is now part of your thought stream.`
+  });
+
   await Promise.all([current.save(), target.save()]);
-  res.json({ following: !following, followers: target.followers.length, followingCount: current.following.length });
+  res.json({
+    following: true,
+    requested: false,
+    followers: target.followers.length,
+    followingCount: current.following.length
+  });
+});
+
+export const acceptFollowRequest = asyncHandler(async (req, res) => {
+  const current = await User.findById(req.user._id);
+  const requester = await User.findById(req.params.requesterId);
+  if (!requester) return res.status(404).json({ message: 'Requester not found' });
+
+  // Remove from followRequests
+  current.followRequests = (current.followRequests || []).filter(
+    (id) => id.toString() !== requester._id.toString()
+  );
+
+  // Add to followers and following
+  if (!current.followers.some((id) => id.toString() === requester._id.toString())) {
+    current.followers.push(requester._id);
+  }
+  if (!requester.following.some((id) => id.toString() === current._id.toString())) {
+    requester.following.push(current._id);
+  }
+
+  await Promise.all([current.save(), requester.save()]);
+
+  // Send notification to requester
+  await createNotification({
+    recipient: requester._id,
+    actor: current._id,
+    type: 'follow',
+    title: `${current.name} accepted your follow request`,
+    body: `You can now view @${current.username}'s published thoughts and profile.`
+  });
+
+  res.json({ success: true, followers: current.followers.length });
+});
+
+export const declineFollowRequest = asyncHandler(async (req, res) => {
+  const current = await User.findById(req.user._id);
+  current.followRequests = (current.followRequests || []).filter(
+    (id) => id.toString() !== req.params.requesterId
+  );
+  await current.save();
+  res.json({ success: true });
+});
+
+export const getFollowRequests = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).populate(
+    'followRequests',
+    'name username avatar bio isPrivate'
+  );
+  res.json({ requests: (user?.followRequests || []).map(safeUser) });
 });
 
 export const getFollowers = asyncHandler(async (req, res) => {

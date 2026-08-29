@@ -82,6 +82,27 @@ export const createThought = asyncHandler(async (req, res) => {
   res.status(201).json({ thought: populated });
 });
 
+async function applyPrivateFilter(filters, req) {
+  const currentUserIdStr = req.user?._id ? req.user._id.toString() : '';
+  const followingIds = (req.user?.following || []).map((id) => id.toString());
+  const allowedAuthorIds = [...(currentUserIdStr ? [currentUserIdStr] : []), ...followingIds];
+
+  const privateUsers = await User.find({ isPrivate: true }).select('_id');
+  const privateIds = privateUsers.map((u) => u._id.toString());
+  const hiddenPrivateIds = privateIds.filter((id) => !allowedAuthorIds.includes(id));
+
+  if (hiddenPrivateIds.length > 0) {
+    if (filters.author) {
+      if (typeof filters.author === 'string' && hiddenPrivateIds.includes(filters.author)) {
+        return false;
+      }
+    } else {
+      filters.author = { $nin: hiddenPrivateIds };
+    }
+  }
+  return true;
+}
+
 export const getThoughts = asyncHandler(async (req, res) => {
   const { page, limit, skip } = paginate(req.query);
   const filters = {};
@@ -94,6 +115,11 @@ export const getThoughts = asyncHandler(async (req, res) => {
       { content: { $regex: req.query.q, $options: 'i' } },
       { hashtags: { $elemMatch: { $regex: req.query.q, $options: 'i' } } }
     ];
+  }
+
+  const allowed = await applyPrivateFilter(filters, req);
+  if (!allowed) {
+    return res.json({ thoughts: [], page, limit, total: 0, totalPages: 0 });
   }
 
   const sortMode = req.query.sort || 'newest';
@@ -152,6 +178,21 @@ export const getThoughts = asyncHandler(async (req, res) => {
 export const getThought = asyncHandler(async (req, res) => {
   const thought = await populateThought(Thought.findById(req.params.id));
   if (!thought) return res.status(404).json({ message: 'Thought not found' });
+
+  if (thought.author) {
+    const authorDoc = await User.findById(thought.author._id || thought.author);
+    if (authorDoc?.isPrivate) {
+      const currentUserIdStr = req.user?._id ? req.user._id.toString() : '';
+      const isSelf = currentUserIdStr === authorDoc._id.toString();
+      const isFollowing = currentUserIdStr
+        ? (authorDoc.followers || []).some((id) => id.toString() === currentUserIdStr)
+        : false;
+      if (!isSelf && !isFollowing) {
+        return res.status(403).json({ message: 'This account is private', isPrivateLocked: true });
+      }
+    }
+  }
+
   res.json({ thought });
 });
 
@@ -261,45 +302,53 @@ export const shareThought = asyncHandler(async (req, res) => {
   res.json({ shares: thought.sharesCount });
 });
 
-export const getTrendingThoughts = asyncHandler(async (_req, res) => {
-  const thoughts = await populateThought(Thought.find({}).limit(120));
+export const getTrendingThoughts = asyncHandler(async (req, res) => {
+  const filters = {};
+  await applyPrivateFilter(filters, req);
+  const thoughts = await populateThought(Thought.find(filters).limit(120));
   const ranked = thoughts.sort((a, b) => thoughtScore(b) - thoughtScore(a)).slice(0, 16);
   res.json({ thoughts: ranked });
 });
 
 export const getExploreThoughts = asyncHandler(async (req, res) => {
   const { page, limit, skip } = paginate(req.query);
+  const filters = {};
+  await applyPrivateFilter(filters, req);
   const sortMode = req.query.sort || 'trending';
 
   if (sortMode === 'trending') {
-    const allMatching = await populateThought(Thought.find({}).limit(200));
+    const allMatching = await populateThought(Thought.find(filters).limit(200));
     const ranked = allMatching.sort((a, b) => thoughtScore(b) - thoughtScore(a));
     const paginated = ranked.slice(skip, skip + limit);
     return res.json({ thoughts: paginated, page, limit, total: allMatching.length, totalPages: Math.ceil(allMatching.length / limit) });
   }
 
-  const thoughts = await populateThought(Thought.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit));
-  const total = await Thought.countDocuments();
+  const thoughts = await populateThought(Thought.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit));
+  const total = await Thought.countDocuments(filters);
   res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
 });
 
 export const searchThoughts = asyncHandler(async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.json({ thoughts: [] });
+  const filters = {
+    $or: [
+      { content: { $regex: q, $options: 'i' } },
+      { hashtags: { $elemMatch: { $regex: q, $options: 'i' } } }
+    ]
+  };
+  await applyPrivateFilter(filters, req);
   const thoughts = await populateThought(
-    Thought.find({
-      $or: [
-        { content: { $regex: q, $options: 'i' } },
-        { hashtags: { $elemMatch: { $regex: q, $options: 'i' } } }
-      ]
-    }).sort({ createdAt: -1 }).limit(24)
+    Thought.find(filters).sort({ createdAt: -1 }).limit(24)
   );
   res.json({ thoughts });
 });
 
 export const getThoughtByCategory = asyncHandler(async (req, res) => {
+  const filters = { category: req.params.slug.toLowerCase() };
+  await applyPrivateFilter(filters, req);
   const thoughts = await populateThought(
-    Thought.find({ category: req.params.slug.toLowerCase() }).sort({ createdAt: -1 }).limit(24)
+    Thought.find(filters).sort({ createdAt: -1 }).limit(24)
   );
   res.json({ thoughts });
 });

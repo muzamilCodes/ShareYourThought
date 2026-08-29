@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema(
     location: { type: String, default: '' },
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     savedThoughts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thought' }],
     isPrivate: { type: Boolean, default: false },
     resetPasswordToken: String,

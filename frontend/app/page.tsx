@@ -57,17 +57,16 @@ export default function HomePage() {
       </div>
 
       {/* Mobile Quick Create Banner */}
-      <div className="container mobile-only" style={{ marginBottom: '16px' }}>
+      <div className="container mobile-only" style={{ marginBottom: '16px', padding: '0 4px' }}>
         <Link
           href="/create"
           style={{
             display: 'flex',
             flexDirection: 'row',
             alignItems: 'center',
-            justifyContent: 'space-between',
             gap: '12px',
-            padding: '10px 16px',
-            borderRadius: '16px',
+            padding: '10px 14px',
+            borderRadius: '20px',
             textDecoration: 'none',
             color: 'inherit',
             background: 'var(--paper)',
@@ -76,28 +75,49 @@ export default function HomePage() {
             flexWrap: 'nowrap'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>✍️</span>
-            <span
-              style={{
-                fontSize: '0.88rem',
-                color: 'var(--muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}
-            >
-              What&apos;s on your mind?
-            </span>
+          <img
+            src={
+              session?.user?.avatar ||
+              (session?.user?.name
+                ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
+                : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+            }
+            alt={session?.user?.name || 'You'}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1.5px solid var(--ember)',
+              flexShrink: 0
+            }}
+          />
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              background: 'var(--dark-soft)',
+              padding: '8px 14px',
+              borderRadius: '20px',
+              fontSize: '0.86rem',
+              color: 'var(--muted)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              border: '1px solid var(--line)'
+            }}
+          >
+            What&apos;s on your mind? Share a thought…
           </div>
           <span
             className="button"
             style={{
-              fontSize: '0.78rem',
-              padding: '6px 14px',
+              fontSize: '0.80rem',
+              padding: '6px 16px',
               minHeight: 'auto',
               flexShrink: 0,
-              borderRadius: '20px'
+              borderRadius: '20px',
+              fontWeight: 700
             }}
           >
             Post

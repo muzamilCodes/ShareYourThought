@@ -21,6 +21,7 @@ export default function UserProfilePage() {
   const [followingList, setFollowingList] = useState<User[]>([]);
   const [savedThoughts, setSavedThoughts] = useState<Thought[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isRequested, setIsRequested] = useState(false);
   const [isPrivateLocked, setIsPrivateLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following' | 'saved'>('thoughts');
@@ -41,6 +42,7 @@ export default function UserProfilePage() {
         setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile._id || profileRes.value.profile.id });
         setThoughts(profileRes.value.thoughts || []);
         setIsFollowing(Boolean(profileRes.value.isFollowing));
+        setIsRequested(Boolean(profileRes.value.isRequested));
         setIsPrivateLocked(Boolean(profileRes.value.isPrivateLocked));
       } else {
         setProfile(null);
@@ -84,7 +86,8 @@ export default function UserProfilePage() {
     const targetId = profile._id || profile.id;
     try {
       const next = await api.followUser(targetId!, session.token);
-      setIsFollowing(next.following);
+      setIsFollowing(Boolean(next.following));
+      setIsRequested(Boolean(next.requested));
       setProfile((current) => (current ? { ...current, followers: next.followers } : null));
       const res = await api.getFollowers(username);
       setFollowersList(res.followers || []);
@@ -135,6 +138,7 @@ export default function UserProfilePage() {
         <ProfileCard
           profile={profile}
           isFollowing={isFollowing}
+          isRequested={isRequested}
           onToggleFollow={toggleFollow}
           isSelf={isSelf}
           activeTab={activeTab}
@@ -175,20 +179,20 @@ export default function UserProfilePage() {
                 🔒
               </div>
               <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
-                This Account is Private
+                {isRequested ? 'Follow Request Pending' : 'This Account is Private'}
               </h2>
               <p className="section-copy" style={{ maxWidth: '42ch', margin: 0, fontSize: '0.94rem' }}>
-                Follow @{profile.username} to see their published thoughts, photos, followers, and activity.
+                {isRequested
+                  ? `Your request to follow @${profile.username} has been sent. You will see their published thoughts and activity once they accept.`
+                  : `Follow @${profile.username} to request access to their published thoughts, photos, and followers.`}
               </p>
-              {!isFollowing ? (
-                <button
-                  className="button"
-                  onClick={toggleFollow}
-                  style={{ marginTop: '8px', padding: '10px 24px' }}
-                >
-                  Follow @{profile.username}
-                </button>
-              ) : null}
+              <button
+                className={isRequested ? 'button-outline' : 'button'}
+                onClick={toggleFollow}
+                style={{ marginTop: '8px', padding: '10px 24px' }}
+              >
+                {isRequested ? 'Cancel Follow Request' : 'Request to Follow 🔒'}
+              </button>
             </div>
           ) : (
             <>

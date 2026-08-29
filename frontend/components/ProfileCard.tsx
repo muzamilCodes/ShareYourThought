@@ -6,6 +6,7 @@ import type { User } from '../types';
 interface ProfileCardProps {
   profile: User;
   isFollowing?: boolean;
+  isRequested?: boolean;
   onToggleFollow?: () => void;
   isSelf?: boolean;
   activeTab?: 'thoughts' | 'followers' | 'following' | 'saved';
@@ -17,6 +18,7 @@ interface ProfileCardProps {
 export function ProfileCard({
   profile,
   isFollowing = false,
+  isRequested = false,
   onToggleFollow,
   isSelf = false,
   activeTab = 'thoughts',
@@ -84,10 +86,10 @@ export function ProfileCard({
           <button
             type="button"
             onClick={onToggleFollow}
-            className={isFollowing ? 'button-outline' : 'button'}
+            className={isFollowing || isRequested ? 'button-outline' : 'button'}
             style={{ fontSize: '0.86rem', padding: '6px 18px', minHeight: 'auto' }}
           >
-            {isFollowing ? 'Following' : 'Follow'}
+            {isFollowing ? 'Following' : isRequested ? 'Requested 🔒' : profile.isPrivate ? 'Follow 🔒' : 'Follow'}
           </button>
         ) : null}
       </div>

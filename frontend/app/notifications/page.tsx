@@ -9,15 +9,25 @@ import type { Notification } from '@/types';
 export default function NotificationsPage() {
   const { session, ready } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [followRequests, setFollowRequests] = useState<any[]>([]);
+  const [processedRequests, setProcessedRequests] = useState<Record<string, 'accepted' | 'declined'>>({});
   const [activeFilter, setActiveFilter] = useState<'all' | 'like' | 'comment' | 'follow'>('all');
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const loadNotifications = async (token: string) => {
     try {
-      const data = await api.listNotifications(token);
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
+      const [notifData, reqData] = await Promise.allSettled([
+        api.listNotifications(token),
+        api.getFollowRequests(token)
+      ]);
+      if (notifData.status === 'fulfilled') {
+        setNotifications(notifData.value.notifications || []);
+        setUnreadCount(notifData.value.unreadCount || 0);
+      }
+      if (reqData.status === 'fulfilled') {
+        setFollowRequests(reqData.value.requests || []);
+      }
     } catch {
       setNotifications([]);
     } finally {
@@ -33,6 +43,28 @@ export default function NotificationsPage() {
       setLoading(false);
     }
   }, [ready, session?.token]);
+
+  const handleAcceptRequest = async (requesterId: string) => {
+    if (!session?.token) return;
+    try {
+      await api.acceptFollowRequest(requesterId, session.token);
+      setProcessedRequests((prev) => ({ ...prev, [requesterId]: 'accepted' }));
+      setFollowRequests((prev) => prev.filter((u) => (u._id || u.id) !== requesterId));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDeclineRequest = async (requesterId: string) => {
+    if (!session?.token) return;
+    try {
+      await api.declineFollowRequest(requesterId, session.token);
+      setProcessedRequests((prev) => ({ ...prev, [requesterId]: 'declined' }));
+      setFollowRequests((prev) => prev.filter((u) => (u._id || u.id) !== requesterId));
+    } catch {
+      // ignore
+    }
+  };
 
   const markAllRead = async () => {
     if (!session?.token) return;
@@ -117,6 +149,93 @@ export default function NotificationsPage() {
           </button>
         ) : null}
       </div>
+
+      {/* Pending Follow Requests Box (For Private Accounts) */}
+      {followRequests.length > 0 && (
+        <div
+          style={{
+            background: 'var(--paper)',
+            borderRadius: '20px',
+            border: '1px solid var(--line)',
+            padding: '18px 20px',
+            marginBottom: '20px',
+            boxShadow: 'var(--shadow)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+              🔒 Follow Requests ({followRequests.length})
+            </h3>
+            <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Private Account</span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {followRequests.map((reqUser) => {
+              const reqId = reqUser._id || reqUser.id;
+              const reqAvatar =
+                reqUser.avatar ||
+                `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(reqUser.name || 'User')}`;
+              const isHandled = processedRequests[reqId];
+
+              return (
+                <div
+                  key={reqId}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--line)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <img
+                      src={reqAvatar}
+                      alt={reqUser.name}
+                      style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <div>
+                      <Link
+                        href={`/profile/${reqUser.username}`}
+                        style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--ink)', textDecoration: 'none' }}
+                      >
+                        {reqUser.name}
+                      </Link>
+                      <div style={{ fontSize: '0.80rem', color: 'var(--muted)' }}>@{reqUser.username}</div>
+                    </div>
+                  </div>
+
+                  {isHandled ? (
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isHandled === 'accepted' ? '#16a34a' : 'var(--muted)' }}>
+                      {isHandled === 'accepted' ? '✓ Accepted' : 'Declined'}
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="button"
+                        onClick={() => handleAcceptRequest(reqId)}
+                        style={{ fontSize: '0.78rem', padding: '6px 14px', minHeight: 'auto', borderRadius: '16px' }}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        className="button-outline"
+                        onClick={() => handleDeclineRequest(reqId)}
+                        style={{ fontSize: '0.78rem', padding: '6px 12px', minHeight: 'auto', borderRadius: '16px' }}
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div
