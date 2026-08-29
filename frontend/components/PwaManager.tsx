@@ -12,6 +12,7 @@ export function PwaManager() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [showBackOnline, setShowBackOnline] = useState(false);
   const [offlineDismissed, setOfflineDismissed] = useState(false);
 
   useEffect(() => {
@@ -35,7 +36,6 @@ export function PwaManager() {
       // Check if user dismissed recently
       const dismissed = localStorage.getItem('thoughtshare_pwa_dismissed');
       if (!dismissed) {
-        // Show after 3 seconds of page interaction
         setTimeout(() => setShowInstallBanner(true), 3000);
       }
     };
@@ -60,10 +60,13 @@ export function PwaManager() {
     const handleOnline = () => {
       setIsOffline(false);
       setOfflineDismissed(false);
+      setShowBackOnline(true);
+      setTimeout(() => setShowBackOnline(false), 3500);
     };
     const handleOffline = () => {
       setIsOffline(true);
       setOfflineDismissed(false);
+      setShowBackOnline(false);
     };
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -133,6 +136,33 @@ export function PwaManager() {
           >
             ✕
           </button>
+        </div>
+      )}
+
+      {/* Back Online Reconnect Success Pill */}
+      {showBackOnline && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#064e3b',
+            color: '#d1fae5',
+            border: '1px solid #10b981',
+            borderRadius: '30px',
+            padding: '8px 18px',
+            fontSize: '0.86rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            zIndex: 9999,
+            animation: 'fadeIn 0.3s ease'
+          }}
+        >
+          <span>⚡ Back online ✓</span>
         </div>
       )}
 
