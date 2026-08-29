@@ -185,6 +185,46 @@ export function ThoughtCard({
     }
   };
 
+  const [quickComment, setQuickComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentsCount, setCommentsCount] = useState(thought.commentsCount || 0);
+  const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [lastTap, setLastTap] = useState<number>(0);
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      // Trigger heart burst
+      setShowHeartBurst(true);
+      setTimeout(() => setShowHeartBurst(false), 900);
+      if (!liked) {
+        handleLike();
+      }
+    }
+    setLastTap(now);
+  };
+
+  const handleQuickCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+    if (!quickComment.trim()) return;
+
+    setSubmittingComment(true);
+    try {
+      await api.createComment(currentThought._id, { content: quickComment.trim() }, token);
+      setCommentsCount((c) => c + 1);
+      setQuickComment('');
+    } catch {
+      // ignore comment error
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
   const authorName = currentThought.author?.name || 'Anonymous';
   const authorUsername = currentThought.author?.username || 'user';
   const authorAvatar =
@@ -192,10 +232,19 @@ export function ThoughtCard({
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
 
   return (
-    <article className="thought-card" id={`thought-${currentThought._id}`} style={{ position: 'relative' }}>
+    <article className="thought-card instagram-card" id={`thought-${currentThought._id}`} style={{ position: 'relative' }}>
+      {/* Instagram Floating Heart Animation */}
+      {showHeartBurst && (
+        <div className="heart-burst-overlay">
+          <span className="heart-burst-icon">❤️</span>
+        </div>
+      )}
+
       <div className="thought-top">
         <div className="brand-lockup">
-          <img className="avatar" src={authorAvatar} alt={authorName} />
+          <div className="insta-avatar-ring">
+            <img className="avatar" src={authorAvatar} alt={authorName} />
+          </div>
           <div>
             <Link href={`/profile/${authorUsername}`} className="thought-author">
               {authorName}
@@ -250,43 +299,19 @@ export function ThoughtCard({
                   >
                     <button
                       type="button"
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 12px',
-                        fontSize: '0.85rem',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        borderRadius: '4px',
-                        color: 'inherit'
-                      }}
+                      className="button-ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px' }}
                       onClick={() => {
-                        setMenuOpen(false);
                         setIsEditing(true);
+                        setMenuOpen(false);
                       }}
                     >
                       <span>✏️</span> Edit Thought
                     </button>
                     <button
                       type="button"
-                      style={{
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '8px 12px',
-                        fontSize: '0.85rem',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        borderRadius: '4px',
-                        color: '#c86d34'
-                      }}
+                      className="button-ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px', color: '#c86d34' }}
                       onClick={handleDelete}
                       disabled={deleting}
                     >
@@ -349,7 +374,7 @@ export function ThoughtCard({
                   padding: '8px 12px',
                   borderRadius: '10px',
                   border: '1px solid var(--line-strong)',
-                  background: '#ffffff',
+                  background: 'var(--paper)',
                   cursor: 'pointer',
                   fontSize: '0.82rem',
                   fontWeight: 600,
@@ -381,22 +406,21 @@ export function ThoughtCard({
                 <img
                   src={editImageUrl}
                   alt="Attachment preview"
-                  style={{ height: '70px', borderRadius: '8px', objectFit: 'cover' }}
+                  style={{ maxHeight: '120px', borderRadius: '8px', objectFit: 'cover' }}
                 />
                 <button
                   type="button"
                   onClick={() => setEditImageUrl('')}
                   style={{
                     position: 'absolute',
-                    top: '-6px',
-                    right: '-6px',
-                    background: '#000000',
+                    top: '4px',
+                    right: '4px',
+                    background: 'rgba(0,0,0,0.6)',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '50%',
-                    width: '20px',
-                    height: '20px',
-                    fontSize: '0.7rem',
+                    width: '22px',
+                    height: '22px',
                     cursor: 'pointer'
                   }}
                 >
@@ -427,20 +451,23 @@ export function ThoughtCard({
         </form>
       ) : (
         <>
-          <p className="thought-body">
-            {compact && currentThought.content.length > 180
-              ? `${currentThought.content.slice(0, 180)}…`
-              : currentThought.content}
-          </p>
+          {/* Main Content with Double-Tap to Like */}
+          <div onClick={handleDoubleTap} style={{ cursor: 'pointer' }}>
+            <p className="thought-body" style={{ margin: '10px 0 6px 0' }}>
+              {compact && currentThought.content.length > 180
+                ? `${currentThought.content.slice(0, 180)}…`
+                : currentThought.content}
+            </p>
 
-          {currentThought.imageUrl ? (
-            <div style={{ marginTop: '14px', borderRadius: '12px', overflow: 'hidden' }}>
-              <img className="thought-image" src={currentThought.imageUrl} alt="Thought attachment" loading="lazy" />
-            </div>
-          ) : null}
+            {currentThought.imageUrl ? (
+              <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', position: 'relative' }}>
+                <img className="thought-image" src={currentThought.imageUrl} alt="Thought attachment" loading="lazy" />
+              </div>
+            ) : null}
+          </div>
 
           {currentThought.hashtags?.length ? (
-            <div className="hashtag-row">
+            <div className="hashtag-row" style={{ marginTop: '8px' }}>
               {currentThought.hashtags.map((tag) => (
                 <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`} className="hashtag">
                   #{tag}
@@ -449,31 +476,61 @@ export function ThoughtCard({
             </div>
           ) : null}
 
-          <div className="thought-actions">
-            <button
-              className={`thought-action ${liked ? 'is-active' : ''}`}
-              onClick={handleLike}
-              title={liked ? 'Unlike' : 'Like'}
-            >
-              {liked ? '♥' : '♡'} {likes}
-            </button>
-            <Link className="thought-action" href={`/thought/${currentThought._id}`} title="Comments">
-              💬 {currentThought.commentsCount || 0}
-            </Link>
-            <span className="thought-action view-badge" title="Views">
-              👁️ {views}
-            </span>
-            <button className="thought-action" onClick={handleShare} title="Share thought">
-              {copied ? '✓ Copied' : `↗ ${shares}`}
-            </button>
-            <button
-              className={`thought-action ${saved ? 'is-active' : ''}`}
-              onClick={handleSave}
-              title={saved ? 'Unsave' : 'Save'}
-            >
-              {saved ? '▣' : '▢'} {saves}
-            </button>
+          {/* Instagram Action Row */}
+          <div className="thought-actions insta-actions-bar" style={{ marginTop: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                className={`thought-action insta-action-btn ${liked ? 'is-active is-liked' : ''}`}
+                onClick={handleLike}
+                title={liked ? 'Unlike' : 'Like'}
+              >
+                <span className="insta-action-icon">{liked ? '❤️' : '🤍'}</span>
+                <span>{likes}</span>
+              </button>
+              <Link className="thought-action insta-action-btn" href={`/thought/${currentThought._id}`} title="Comments">
+                <span className="insta-action-icon">💬</span>
+                <span>{commentsCount}</span>
+              </Link>
+              <button className="thought-action insta-action-btn" onClick={handleShare} title="Share thought">
+                <span className="insta-action-icon">↗️</span>
+                <span>{copied ? 'Copied' : shares}</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="thought-action view-badge" title="Views">
+                👁️ {views}
+              </span>
+              <button
+                className={`thought-action insta-action-btn ${saved ? 'is-active is-saved' : ''}`}
+                onClick={handleSave}
+                title={saved ? 'Unsave' : 'Save'}
+              >
+                <span className="insta-action-icon">{saved ? '🔖' : '🏷️'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Instagram Quick Comment Input */}
+          <form className="insta-quick-comment-form" onSubmit={handleQuickCommentSubmit}>
+            <input
+              type="text"
+              placeholder="Add a comment…"
+              value={quickComment}
+              onChange={(e) => setQuickComment(e.target.value)}
+              className="insta-quick-comment-input"
+              aria-label="Add a quick comment"
+            />
+            {quickComment.trim() ? (
+              <button
+                type="submit"
+                className="insta-quick-comment-btn"
+                disabled={submittingComment}
+              >
+                {submittingComment ? '…' : 'Post'}
+              </button>
+            ) : null}
+          </form>
         </>
       )}
     </article>

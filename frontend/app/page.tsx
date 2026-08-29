@@ -6,6 +6,7 @@ import { SectionHeading } from '../components/SectionHeading';
 import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
 import { FeedSkeleton } from '../components/SkeletonLoader';
+import { StoryTray } from '../components/StoryTray';
 import { api } from '../lib/api';
 import type { Category, Thought } from '../types';
 
@@ -48,8 +49,13 @@ export default function HomePage() {
 
   return (
     <div className="page">
+      {/* Instagram-Style Story Sparks Tray */}
+      <div className="container" style={{ marginTop: '12px' }}>
+        <StoryTray thoughts={thoughts} />
+      </div>
+
       {/* Mobile Quick Create Banner */}
-      <div className="container mobile-only" style={{ marginBottom: '16px', marginTop: '8px' }}>
+      <div className="container mobile-only" style={{ marginBottom: '16px' }}>
         <Link
           href="/create"
           className="note-card"
