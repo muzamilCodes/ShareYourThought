@@ -94,7 +94,7 @@ export default function ExplorePage() {
       ) : null}
 
       <section className="section" id="explore-feed">
-        <div className="container">
+        <div className="container" style={{ maxWidth: '650px' }}>
           <SectionHeading
             eyebrow="Explore Feed"
             title={active === 'all' ? 'All Published Thoughts' : `Thoughts on #${active.toUpperCase()}`}

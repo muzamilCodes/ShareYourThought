@@ -50,7 +50,7 @@ export default function HomePage() {
   return (
     <div className="page">
       {/* Instagram-Style Story Sparks Tray */}
-      <div className="container" style={{ marginTop: '12px' }}>
+      <div className="container" style={{ maxWidth: '650px', marginTop: '12px' }}>
         <StoryTray thoughts={thoughts} />
       </div>
 
@@ -81,60 +81,13 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <section className="hero">
-        <div className="container">
-          <Reveal>
-            <div className="hero-panel" style={{ width: '100%' }}>
-              <div className="hero-top">
-                <div className="hero-kicker">
-                  <span className="brand-mark" /> A calm editorial space for public thought
-                </div>
-                <div className="pill">Public Thoughts · Real Discussions</div>
-              </div>
-              <div>
-                <h1 className="hero-headline">Share your thoughts. Let ideas travel.</h1>
-                <p className="hero-copy">
-                  ThoughtShare is an authentic publishing platform where people share reflections, discover new
-                  perspectives, and connect through thoughtful conversation.
-                </p>
-                <div className="hero-actions" style={{ marginTop: '20px' }}>
-                  <Link href="/create" className="button">
-                    ✍️ Share a Thought
-                  </Link>
-                  <Link href="/trending" className="button-outline">
-                    🔥 View Trending
-                  </Link>
-                </div>
-              </div>
-              <div className="hero-stat-grid">
-                <div className="stat-card">
-                  <div className="stat-value">{totalCount}</div>
-                  <div className="stat-label">Published Thoughts</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">{categories.length}</div>
-                  <div className="stat-label">Active Topics</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-value">100%</div>
-                  <div className="stat-label">Real Engagement</div>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
       {/* Main Thought Feed Showcase with Sorting Tabs */}
       <section className="section">
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
-            <div>
-              <div className="mono" style={{ color: 'var(--ember)', fontWeight: 700 }}>Thought Showcase</div>
-              <h2 className="display-title" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', margin: '4px 0 0' }}>
-                {activeSort === 'trending' ? '🔥 Trending & Most Engaging' : activeSort === 'popular' ? '🏆 Most Popular All-Time' : '⚡ Latest Published Thoughts'}
-              </h2>
-            </div>
+        <div className="container" style={{ maxWidth: '650px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+            <h2 className="display-title" style={{ fontSize: '1.4rem', margin: 0 }}>
+              {activeSort === 'trending' ? '🔥 Trending Feed' : activeSort === 'popular' ? '🏆 Most Liked' : '⚡ Latest Feed'}
+            </h2>
 
             {/* Feed Sort Tabs */}
             <div className="feed-sort-tabs">
@@ -157,7 +110,7 @@ export default function HomePage() {
                 className={`feed-sort-tab ${activeSort === 'popular' ? 'is-active' : ''}`}
                 onClick={() => setActiveSort('popular')}
               >
-                🏆 Most Liked
+                🏆 Liked
               </button>
             </div>
           </div>
@@ -180,7 +133,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+            <div style={{ textAlign: 'center', padding: '48px 0', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
               <p className="empty-state">No thoughts found in this view yet.</p>
               <div style={{ marginTop: '16px' }}>
                 <Link href="/create" className="button">

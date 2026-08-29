@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '@/components/SectionHeading';
 import { api } from '@/lib/api';
 import { useSession } from '@/hooks/useSession';
 import type { Notification } from '@/types';
@@ -10,6 +9,7 @@ import type { Notification } from '@/types';
 export default function NotificationsPage() {
   const { session, ready } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'like' | 'comment' | 'follow'>('all');
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +40,7 @@ export default function NotificationsPage() {
       await api.markAllNotificationsRead(session.token);
       setUnreadCount(0);
       setNotifications((current) => current.map((n) => ({ ...n, read: true })));
+      window.dispatchEvent(new CustomEvent('unread-count-updated', { detail: 0 }));
     } catch {
       // ignore
     }
@@ -47,94 +48,265 @@ export default function NotificationsPage() {
 
   if (ready && !session) {
     return (
-      <div className="page container">
-        <section className="auth-hero">
-          <div className="mono">Notifications</div>
-          <h1 className="display-title display-title-xl">Sign in to view your activity.</h1>
-          <p className="section-copy section-copy-lg">
-            Stay updated when people like your thoughts, comment on your ideas, or follow your stream.
+      <div className="page container" style={{ maxWidth: '650px' }}>
+        <div style={{ textAlign: 'center', padding: '60px 24px', background: 'var(--paper)', borderRadius: '20px', border: '1px solid var(--line)' }}>
+          <span style={{ fontSize: '3rem', display: 'block', marginBottom: '12px' }}>🔔</span>
+          <h1 className="display-title" style={{ fontSize: '1.6rem', marginBottom: '8px', color: 'var(--ink)' }}>
+            Sign in to view your activity
+          </h1>
+          <p className="section-copy" style={{ margin: '0 auto 20px auto', fontSize: '0.92rem', maxWidth: '38ch' }}>
+            Stay updated when people like your thoughts, comment on your ideas, or follow your profile.
           </p>
-          <div className="button-row" style={{ marginTop: '24px' }}>
-            <Link href="/login" className="button">
-              Login to ThoughtShare
-            </Link>
-          </div>
-        </section>
+          <Link href="/login" className="button">
+            Login to ThoughtShare
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const iconMap: Record<string, string> = {
+    like: '❤️',
+    comment: '💬',
+    reply: '↩️',
+    follow: '👤',
+    system: '📢'
+  };
+
+  const filteredNotifications = activeFilter === 'all'
+    ? notifications
+    : notifications.filter((n) => {
+        if (activeFilter === 'like') return n.type === 'like';
+        if (activeFilter === 'comment') return n.type === 'comment' || n.type === 'reply';
+        if (activeFilter === 'follow') return n.type === 'follow';
+        return true;
+      });
+
   return (
-    <div className="page container">
-      <section className="explore-hero">
-        <div className="mono">Activity Feed</div>
-        <h1 className="display-title display-title-xl">Your conversation in motion.</h1>
-        <p className="section-copy section-copy-lg">
-          Follow-ups, likes, comments, replies, and new followers appear here in real time.
-        </p>
-        <div className="button-row" style={{ marginTop: '20px' }}>
-          <div className="pill">Unread · {unreadCount}</div>
+    <div className="page container" style={{ maxWidth: '650px' }}>
+      {/* Top Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h1 className="display-title" style={{ fontSize: '1.65rem', margin: 0, color: 'var(--ink)' }}>
+            🔔 Notifications
+          </h1>
           {unreadCount > 0 ? (
-            <button className="button-outline" type="button" onClick={markAllRead}>
-              Mark all as read
-            </button>
+            <span
+              style={{
+                background: '#ef4444',
+                color: '#ffffff',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '12px'
+              }}
+            >
+              {unreadCount} new
+            </span>
           ) : null}
         </div>
-      </section>
 
-      <section className="section">
-        <SectionHeading eyebrow="Inbox" title="Recent Notifications" />
-        <div className="notification-list">
-          {loading ? (
-            <p className="empty-state">Loading your activity…</p>
-          ) : notifications.map((item) => (
-            <article
-              key={item._id}
-              className="notification-card"
-              style={{ opacity: item.read ? 0.75 : 1, borderLeft: !item.read ? '3px solid var(--ember)' : undefined }}
-            >
-              <div className="card-top">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {item.actor?.avatar ? (
+        {unreadCount > 0 ? (
+          <button
+            type="button"
+            onClick={markAllRead}
+            className="button-ghost"
+            style={{ fontSize: '0.82rem', padding: '6px 12px', fontWeight: 600, color: 'var(--ember)' }}
+          >
+            ✓ Mark all as read
+          </button>
+        ) : null}
+      </div>
+
+      {/* Filter Tabs */}
+      <div
+        className="feed-sort-tabs"
+        style={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}
+      >
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeFilter === 'all' ? 'is-active' : ''}`}
+          onClick={() => setActiveFilter('all')}
+          style={{ flex: 1 }}
+        >
+          All ({notifications.length})
+        </button>
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeFilter === 'like' ? 'is-active' : ''}`}
+          onClick={() => setActiveFilter('like')}
+          style={{ flex: 1 }}
+        >
+          ❤️ Likes
+        </button>
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeFilter === 'comment' ? 'is-active' : ''}`}
+          onClick={() => setActiveFilter('comment')}
+          style={{ flex: 1 }}
+        >
+          💬 Comments
+        </button>
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeFilter === 'follow' ? 'is-active' : ''}`}
+          onClick={() => setActiveFilter('follow')}
+          style={{ flex: 1 }}
+        >
+          👤 Follows
+        </button>
+      </div>
+
+      {/* Notifications Stream */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <p className="empty-state">Loading your activity…</p>
+        </div>
+      ) : filteredNotifications.length ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {filteredNotifications.map((item) => {
+            const actorName = item.actor?.name || 'Someone';
+            const actorAvatar =
+              item.actor?.avatar ||
+              `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(actorName)}`;
+            const targetUrl = item.thought?._id
+              ? `/thought/${item.thought._id}`
+              : item.actor?.username
+              ? `/profile/${item.actor.username}`
+              : '#';
+
+            return (
+              <div
+                key={item._id}
+                className="note-card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '14px',
+                  padding: '16px 18px',
+                  borderRadius: '18px',
+                  background: item.read ? 'var(--paper)' : 'var(--paper)',
+                  border: item.read ? '1px solid var(--line)' : '1.5px solid var(--ember)',
+                  boxShadow: item.read ? 'none' : '0 4px 16px rgba(200, 109, 52, 0.10)',
+                  transition: 'transform 140ms ease'
+                }}
+              >
+                {/* Actor Avatar with Action Icon Badge */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Link href={item.actor?.username ? `/profile/${item.actor.username}` : '#'}>
                     <img
-                      className="avatar"
-                      src={item.actor.avatar}
-                      alt={item.actor.name || 'User'}
-                      style={{ width: '32px', height: '32px' }}
+                      src={actorAvatar}
+                      alt={actorName}
+                      style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
                     />
+                  </Link>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: '-3px',
+                      right: '-3px',
+                      background: 'var(--paper)',
+                      borderRadius: '50%',
+                      fontSize: '0.85rem',
+                      lineHeight: 1,
+                      padding: '2px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {iconMap[item.type] || '🔔'}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ fontSize: '0.92rem', color: 'var(--ink)' }}>
+                      <Link
+                        href={item.actor?.username ? `/profile/${item.actor.username}` : '#'}
+                        style={{ fontWeight: 800, textDecoration: 'none', color: 'var(--ink)' }}
+                      >
+                        {actorName}
+                      </Link>{' '}
+                      <span style={{ color: 'var(--muted)' }}>
+                        {item.type === 'like' && 'liked your thought'}
+                        {item.type === 'comment' && 'commented on your thought'}
+                        {item.type === 'reply' && 'replied to your comment'}
+                        {item.type === 'follow' && 'started following you'}
+                        {item.type === 'system' && item.title}
+                      </span>
+                    </div>
+
+                    {!item.read ? (
+                      <span
+                        style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: 'var(--ember)',
+                          flexShrink: 0
+                        }}
+                      />
+                    ) : null}
+                  </div>
+
+                  {item.body ? (
+                    <p
+                      style={{
+                        margin: '6px 0 0 0',
+                        fontSize: '0.86rem',
+                        color: 'var(--muted)',
+                        background: 'var(--dark-soft)',
+                        padding: '6px 12px',
+                        borderRadius: '10px',
+                        lineHeight: 1.4
+                      }}
+                    >
+                      "{item.body}"
+                    </p>
                   ) : null}
-                  <div>
-                    <div className="notification-title" style={{ fontWeight: 600 }}>{item.title}</div>
-                    {item.actor?.username ? (
-                      <Link href={`/profile/${item.actor.username}`} className="meta" style={{ textDecoration: 'underline' }}>
-                        @{item.actor.username}
+
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {targetUrl !== '#' ? (
+                      <Link
+                        href={targetUrl}
+                        className="button-ghost"
+                        style={{
+                          fontSize: '0.78rem',
+                          padding: '4px 10px',
+                          fontWeight: 700,
+                          color: 'var(--ember)',
+                          background: 'rgba(200, 109, 52, 0.08)',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        {item.type === 'follow' ? 'View Profile →' : 'View Thought →'}
                       </Link>
-                    ) : (
-                      <div className="meta">{item.type}</div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
-                <div className="pill">{item.read ? 'Read' : 'New'}</div>
               </div>
-              <p className="card-copy" style={{ marginTop: '12px' }}>{item.body}</p>
-              {item.thought ? (
-                <div style={{ marginTop: '10px' }}>
-                  <Link
-                    href={`/thought/${typeof item.thought === 'string' ? item.thought : item.thought._id}`}
-                    className="button-ghost"
-                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
-                  >
-                    View Thought →
-                  </Link>
-                </div>
-              ) : null}
-            </article>
-          ))}
-          {!loading && !notifications.length ? (
-            <p className="empty-state">No notifications yet. When other users interact with you, updates will appear here.</p>
-          ) : null}
+            );
+          })}
         </div>
-      </section>
+      ) : (
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '54px 16px',
+            background: 'var(--paper)',
+            borderRadius: '20px',
+            border: '1px solid var(--line)'
+          }}
+        >
+          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>✨</span>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
+            All caught up!
+          </h3>
+          <p className="section-copy" style={{ margin: '0 auto', fontSize: '0.90rem', maxWidth: '38ch' }}>
+            No new activity in this view right now. Share thoughts and engage with authors to get the conversation moving.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

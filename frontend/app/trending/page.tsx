@@ -62,7 +62,7 @@ export default function TrendingPage() {
       </section>
 
       <section className="section">
-        <div className="container">
+        <div className="container" style={{ maxWidth: '650px' }}>
           <SectionHeading eyebrow="Momentum Leaderboard" title="Top Ranked Thoughts Right Now" />
           {thoughts.length ? (
             <div className="list-grid">

@@ -1,32 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ProfileCard, ThoughtCard } from '@/components/ThoughtCard';
-import { SectionHeading } from '@/components/SectionHeading';
-import { api } from '@/lib/api';
+import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { ProfileCard } from '@/components/ProfileCard';
+import { ThoughtCard } from '@/components/ThoughtCard';
 import { useSession } from '@/hooks/useSession';
+import { api } from '@/lib/api';
 import type { Thought, User } from '@/types';
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
   const params = useParams();
-  const rawUsername = params?.username;
-  const username = Array.isArray(rawUsername)
-    ? rawUsername[0]
-    : rawUsername
-      ? String(rawUsername).toLowerCase()
-      : '';
+  const rawUsername = params?.username as string | undefined;
+  const username = rawUsername ? decodeURIComponent(rawUsername).toLowerCase() : '';
 
   const { session, ready } = useSession();
   const [profile, setProfile] = useState<User | null>(null);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [followersList, setFollowersList] = useState<User[]>([]);
   const [followingList, setFollowingList] = useState<User[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [savedThoughts, setSavedThoughts] = useState<Thought[]>([]);
-  const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following' | 'saved'>('thoughts');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isPrivateLocked, setIsPrivateLocked] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following' | 'saved'>('thoughts');
 
   const loadProfile = async () => {
     if (!username) return;
@@ -44,6 +41,7 @@ export default function ProfilePage() {
         setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile._id || profileRes.value.profile.id });
         setThoughts(profileRes.value.thoughts || []);
         setIsFollowing(Boolean(profileRes.value.isFollowing));
+        setIsPrivateLocked(Boolean(profileRes.value.isPrivateLocked));
       } else {
         setProfile(null);
       }
@@ -90,6 +88,10 @@ export default function ProfilePage() {
       setProfile((current) => (current ? { ...current, followers: next.followers } : null));
       const res = await api.getFollowers(username);
       setFollowersList(res.followers || []);
+      // If was locked and now following, refresh full profile
+      if (isPrivateLocked && next.following) {
+        loadProfile();
+      }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Could not update follow status');
     }
@@ -125,10 +127,10 @@ export default function ProfilePage() {
 
   const followersCount = followersList.length || (typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0);
   const followingCount = followingList.length || (typeof profile.following === 'number' ? profile.following : profile.following?.length || 0);
-  const savedCount = savedThoughts.length || (typeof profile.savedThoughts === 'number' ? profile.savedThoughts : 0);
+  const totalSavedCount = savedThoughts.length || (typeof profile.savedThoughts === 'number' ? profile.savedThoughts : 0);
 
   return (
-    <div className="page container">
+    <div className="page container" style={{ maxWidth: '650px' }}>
       <section className="profile-grid">
         <ProfileCard
           profile={profile}
@@ -137,180 +139,209 @@ export default function ProfilePage() {
           isSelf={isSelf}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          thoughtsCount={thoughts.length}
+          thoughtsCount={isPrivateLocked ? 0 : thoughts.length}
+          savedCount={isSelf ? totalSavedCount : 0}
         />
         <div className="profile-summary">
-          <section className="profile-hero">
-            <div className="mono">Thought Stream</div>
-            <h1 className="display-title display-title-xl">{profile.name}'s Profile</h1>
-            <p className="section-copy section-copy-lg">
-              {profile.bio || `Explore thoughts, opinions, and discussions published by @${profile.username}.`}
-            </p>
-          </section>
-
-          {/* Interactive Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <button
-              className={`category-pill ${activeTab === 'thoughts' ? 'is-active' : ''}`}
-              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => setActiveTab('thoughts')}
+          {/* Private Account Locked Notice */}
+          {isPrivateLocked ? (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '60px 24px',
+                background: 'var(--paper)',
+                borderRadius: '20px',
+                border: '1px solid var(--line)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '14px',
+                boxShadow: '0 8px 30px rgba(0,0,0,0.06)'
+              }}
             >
-              <span>✍️</span>
-              <span>Thoughts ({thoughts.length})</span>
-            </button>
-            <button
-              className={`category-pill ${activeTab === 'followers' ? 'is-active' : ''}`}
-              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => setActiveTab('followers')}
-            >
-              <span>👥</span>
-              <span>Followers ({followersCount})</span>
-            </button>
-            <button
-              className={`category-pill ${activeTab === 'following' ? 'is-active' : ''}`}
-              style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-              onClick={() => setActiveTab('following')}
-            >
-              <span>✨</span>
-              <span>Following ({followingCount})</span>
-            </button>
-            {isSelf && (
-              <button
-                className={`category-pill ${activeTab === 'saved' ? 'is-active' : ''}`}
-                style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                onClick={() => setActiveTab('saved')}
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(200, 109, 52, 0.15), rgba(20, 20, 17, 0.08))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem',
+                  border: '1px solid var(--line)'
+                }}
               >
-                <span>🔖</span>
-                <span>Saved ({savedCount})</span>
-              </button>
-            )}
-          </div>
+                🔒
+              </div>
+              <h2 style={{ fontSize: '1.45rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                This Account is Private
+              </h2>
+              <p className="section-copy" style={{ maxWidth: '42ch', margin: 0, fontSize: '0.94rem' }}>
+                Follow @{profile.username} to see their published thoughts, photos, followers, and activity.
+              </p>
+              {!isFollowing ? (
+                <button
+                  className="button"
+                  onClick={toggleFollow}
+                  style={{ marginTop: '8px', padding: '10px 24px' }}
+                >
+                  Follow @{profile.username}
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <>
+              {/* Tab 1: Thoughts */}
+              {activeTab === 'thoughts' && (
+                <div className="profile-thoughts">
+                  {thoughts.map((thought) => (
+                    <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
+                  ))}
+                  {!thoughts.length ? (
+                    <div style={{ textAlign: 'center', padding: '40px 16px', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: '2.2rem', display: 'block', marginBottom: '8px' }}>✍️</span>
+                      <p className="empty-state" style={{ margin: 0 }}>This author hasn't published any thoughts yet.</p>
+                      {isSelf && (
+                        <div style={{ marginTop: '16px' }}>
+                          <Link href="/create" className="button">
+                            ✍️ Share Your First Thought
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
-          {/* Tab 1: Thoughts */}
-          {activeTab === 'thoughts' && (
-            <div className="profile-thoughts">
-              <SectionHeading eyebrow="Published Thoughts" title="All Thoughts by This Author" />
-              {thoughts.map((thought) => (
-                <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
-              ))}
-              {!thoughts.length ? (
-                <div style={{ textAlign: 'center', padding: '36px 0' }}>
-                  <p className="empty-state">This user hasn't published any thoughts yet.</p>
-                  {isSelf && (
-                    <div style={{ marginTop: '14px' }}>
-                      <Link href="/create" className="button">
-                        ✍️ Share Your First Thought
-                      </Link>
+              {/* Tab 2: Followers */}
+              {activeTab === 'followers' && (
+                <div>
+                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                      Followers ({followersCount})
+                    </h2>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>People following @{profile.username}</span>
+                  </div>
+                  {followersList.length ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                      {followersList.map((follower) => {
+                        const fAvatar =
+                          follower.avatar ||
+                          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(follower.name || 'User')}`;
+                        return (
+                          <div
+                            key={follower._id || follower.username}
+                            className="note-card"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img
+                                src={fAvatar}
+                                alt={follower.name}
+                                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                              />
+                              <div>
+                                <Link href={`/profile/${follower.username}`} style={{ fontWeight: 700, textDecoration: 'none', color: 'var(--ink)', fontSize: '0.90rem' }}>
+                                  {follower.name}
+                                </Link>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>@{follower.username}</div>
+                              </div>
+                            </div>
+                            <Link href={`/profile/${follower.username}`} className="button-ghost" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>
+                              View →
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+                      <p className="empty-state" style={{ margin: 0 }}>No followers yet.</p>
                     </div>
                   )}
                 </div>
-              ) : null}
-            </div>
-          )}
+              )}
 
-          {/* Tab 2: Followers */}
-          {activeTab === 'followers' && (
-            <div>
-              <SectionHeading eyebrow="Community" title={`People Following @${profile.username}`} />
-              {followersList.length ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
-                  {followersList.map((follower) => {
-                    const fAvatar =
-                      follower.avatar ||
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(follower.name || 'User')}`;
-                    return (
-                      <div
-                        key={follower._id || follower.username}
-                        className="note-card"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img
-                            src={fAvatar}
-                            alt={follower.name}
-                            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <div>
-                            <Link href={`/profile/${follower.username}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}>
-                              {follower.name}
+              {/* Tab 3: Following */}
+              {activeTab === 'following' && (
+                <div>
+                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                      Following ({followingCount})
+                    </h2>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>People @{profile.username} follows</span>
+                  </div>
+                  {followingList.length ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '12px' }}>
+                      {followingList.map((followed) => {
+                        const fAvatar =
+                          followed.avatar ||
+                          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(followed.name || 'User')}`;
+                        return (
+                          <div
+                            key={followed._id || followed.username}
+                            className="note-card"
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: '12px' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <img
+                                src={fAvatar}
+                                alt={followed.name}
+                                style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                              />
+                              <div>
+                                <Link href={`/profile/${followed.username}`} style={{ fontWeight: 700, textDecoration: 'none', color: 'var(--ink)', fontSize: '0.90rem' }}>
+                                  {followed.name}
+                                </Link>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>@{followed.username}</div>
+                              </div>
+                            </div>
+                            <Link href={`/profile/${followed.username}`} className="button-ghost" style={{ fontSize: '0.78rem', padding: '4px 10px' }}>
+                              View →
                             </Link>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>@{follower.username}</div>
                           </div>
-                        </div>
-                        <Link href={`/profile/${follower.username}`} className="button-ghost" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
-                          View →
-                        </Link>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+                      <p className="empty-state" style={{ margin: 0 }}>Not following anyone yet.</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="empty-state">No followers yet.</p>
               )}
 
-            </div>
-          )}
-
-          {/* Tab 3: Following */}
-          {activeTab === 'following' && (
-            <div>
-              <SectionHeading eyebrow="Community" title={`People @${profile.username} Follows`} />
-              {followingList.length ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '16px' }}>
-                  {followingList.map((followed) => {
-                    const fAvatar =
-                      followed.avatar ||
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(followed.name || 'User')}`;
-                    return (
-                      <div
-                        key={followed._id || followed.username}
-                        className="note-card"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <img
-                            src={fAvatar}
-                            alt={followed.name}
-                            style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <div>
-                            <Link href={`/profile/${followed.username}`} style={{ fontWeight: 600, textDecoration: 'none', color: 'inherit' }}>
-                              {followed.name}
-                            </Link>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>@{followed.username}</div>
-                          </div>
-                        </div>
-                        <Link href={`/profile/${followed.username}`} className="button-ghost" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
-                          View →
-                        </Link>
-                      </div>
-                    );
-                  })}
+              {/* Tab 4: Saved (Bookmarks) */}
+              {activeTab === 'saved' && (
+                <div>
+                  <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                      Saved Bookmarks ({totalSavedCount})
+                    </h2>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>Only visible to you</span>
+                  </div>
+                  {savedThoughts.length ? (
+                    <div className="profile-thoughts">
+                      {savedThoughts.map((thought) => (
+                        <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: '2.2rem', display: 'block', marginBottom: '8px' }}>🔖</span>
+                      <p className="empty-state" style={{ margin: 0 }}>No saved thoughts yet.</p>
+                      <span style={{ fontSize: '0.82rem', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>
+                        Tap the 🏷️ bookmark icon on any thought to save it here.
+                      </span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="empty-state">Not following anyone yet.</p>
               )}
-            </div>
-          )}
-
-          {/* Tab 4: Saved (Bookmarks) */}
-          {activeTab === 'saved' && isSelf && (
-            <div>
-              <SectionHeading eyebrow="Bookmarks" title="Thoughts You Saved" />
-              {savedThoughts.length ? (
-                <div className="profile-thoughts">
-                  {savedThoughts.map((thought) => (
-                    <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
-                  ))}
-                </div>
-              ) : (
-                <p className="empty-state">No saved thoughts yet.</p>
-              )}
-            </div>
+            </>
           )}
         </div>
       </section>
     </div>
   );
 }
-

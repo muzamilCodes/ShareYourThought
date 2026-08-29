@@ -1,23 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import { ThemeToggle } from './ThemeToggle';
 
-const links = [
-  { href: '/', label: 'Home' },
-  { href: '/explore', label: 'Explore' },
-  { href: '/trending', label: 'Trending' },
-  { href: '/search', label: 'Search' },
-  { href: '/about', label: 'About' }
-];
-
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const { session, ready, logout } = useSession();
   const [query, setQuery] = useState('');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const handleCount = (e: Event) => {
+      const custom = e as CustomEvent<number>;
+      if (typeof custom.detail === 'number') {
+        setUnreadCount(custom.detail);
+      }
+    };
+    window.addEventListener('unread-count-updated', handleCount);
+    return () => window.removeEventListener('unread-count-updated', handleCount);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -25,81 +31,160 @@ export function Navbar() {
         await api.logout(session.token);
       }
     } catch {
-      // ignore logout errors
+      // ignore
     } finally {
       logout();
-      setMobileMenuOpen(false);
+      router.push('/login');
     }
   };
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
-    window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
-    setMobileMenuOpen(false);
+    router.push(`/search?q=${encodeURIComponent(query.trim())}`);
   };
 
+  const profileHref = session?.user?.username ? `/profile/${session.user.username}` : '/profile';
+  const userAvatar = session?.user?.avatar || (session?.user?.name ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}` : '');
+
+  const navLinks = [
+    { href: '/', label: 'Home', icon: '🏠' },
+    { href: '/explore', label: 'Explore', icon: '🔍' },
+    { href: '/trending', label: 'Trending', icon: '🔥' },
+    { href: '/search', label: 'Search', icon: '🏷️' },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      icon: '🔔',
+      badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : null
+    },
+    { href: profileHref, label: 'Profile', icon: '👤', authRequired: true },
+    { href: '/settings', label: 'Settings', icon: '⚙️', authRequired: true },
+    { href: '/about', label: 'About', icon: '📖' }
+  ];
+
   return (
-    <header className="navbar">
-      <div className="navbar-inner">
-        <Link className="brand" href="/" onClick={() => setMobileMenuOpen(false)}>
-          <span className="brand-mark" />
-          <span>ThoughtShare</span>
-        </Link>
+    <>
+      {/* =========================================================
+          DESKTOP FIXED LEFT SIDEBAR (TWITTER / INSTAGRAM STYLE)
+      ========================================================= */}
+      <aside className="desktop-sidebar desktop-only" aria-label="Desktop Sidebar Navigation">
+        <div className="desktop-sidebar-top">
+          {/* Brand Logo */}
+          <Link href="/" className="sidebar-brand">
+            <span className="brand-mark" />
+            <span className="brand-name">ThoughtShare</span>
+          </Link>
 
-        {/* Desktop Nav Links */}
-        <nav className="nav-links desktop-only" aria-label="Primary Navigation">
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className="nav-link">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Desktop Controls (Search + Auth + Theme) */}
-        <div className="nav-actions desktop-only">
-          <ThemeToggle compact />
-
-          <form className="nav-search" onSubmit={handleSearch}>
-            <span className="mono" style={{ fontSize: '0.75rem' }}>Search</span>
+          {/* Search Input Box */}
+          <form className="sidebar-search" onSubmit={handleSearch}>
+            <span style={{ fontSize: '0.88rem' }}>🔍</span>
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search thoughts, users…"
               aria-label="Search thoughts or users"
             />
           </form>
 
-          {ready && session ? (
-            <>
-              <Link className="button-ghost" href="/notifications" title="Notifications" style={{ padding: '8px 12px' }}>
-                🔔
-              </Link>
-              <Link className="button-ghost" href={`/profile/${session.user.username}`} title="My Profile" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span>👤</span>
-                <span>@{session.user.username}</span>
-              </Link>
-              <button className="button-outline" onClick={handleLogout} style={{ padding: '8px 14px' }}>
-                Logout
-              </button>
-            </>
-          ) : ready ? (
-            <>
-              <Link className="button-ghost" href="/login">
-                Login
-              </Link>
-              <Link className="button-outline" href="/register">
-                Register
-              </Link>
-            </>
-          ) : null}
+          {/* Nav Links */}
+          <nav className="sidebar-nav">
+            {navLinks.map((item) => {
+              if (item.authRequired && !session) return null;
+              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`sidebar-nav-item ${isActive ? 'is-active' : ''}`}
+                >
+                  <span className="sidebar-nav-icon">{item.icon}</span>
+                  <span className="sidebar-nav-label">{item.label}</span>
+                  {item.badge ? (
+                    <span className="sidebar-nav-badge">{item.badge}</span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Prominent Create Post Button */}
+          <Link href="/create" className="sidebar-create-btn">
+            <span>✍️</span>
+            <span>Share Thought</span>
+          </Link>
         </div>
 
-        {/* Mobile Header Controls (Right side of top bar: only clean Theme Toggle) */}
-        <div className="mobile-header-actions mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ThemeToggle compact />
+        {/* Bottom User Area */}
+        <div className="desktop-sidebar-bottom">
+          {ready && session ? (
+            <div className="sidebar-user-card">
+              <Link href={profileHref} style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'inherit', flex: 1, minWidth: 0 }}>
+                {userAvatar ? (
+                  <img
+                    src={userAvatar}
+                    alt={session.user.name}
+                    style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '1.4rem' }}>👤</span>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <strong style={{ display: 'block', fontSize: '0.86rem', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {session.user.name}
+                  </strong>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
+                    @{session.user.username}
+                  </span>
+                </div>
+              </Link>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ThemeToggle compact />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="button-ghost"
+                  style={{ padding: '6px 8px', fontSize: '0.95rem' }}
+                  title="Logout"
+                >
+                  🚪
+                </button>
+              </div>
+            </div>
+          ) : ready ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.80rem', color: 'var(--muted)' }}>Theme</span>
+                <ThemeToggle compact />
+              </div>
+              <Link href="/login" className="button" style={{ width: '100%', fontSize: '0.88rem' }}>
+                Sign In
+              </Link>
+              <Link href="/register" className="button-outline" style={{ width: '100%', fontSize: '0.88rem' }}>
+                Create Account
+              </Link>
+            </div>
+          ) : null}
         </div>
-      </div>
-    </header>
+      </aside>
+
+      {/* =========================================================
+          MOBILE TOP COMPACT HEADER
+      ========================================================= */}
+      <header className="mobile-header mobile-only">
+        <div className="mobile-header-inner">
+          <Link href="/" className="sidebar-brand" style={{ padding: 0 }}>
+            <span className="brand-mark" />
+            <span className="brand-name" style={{ fontSize: '1.15rem' }}>ThoughtShare</span>
+          </Link>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ThemeToggle compact />
+          </div>
+        </div>
+      </header>
+    </>
   );
 }

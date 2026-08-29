@@ -21,6 +21,15 @@ export function BottomNav() {
         })
         .catch(() => {});
     }
+
+    const handleCount = (e: Event) => {
+      const custom = e as CustomEvent<number>;
+      if (typeof custom.detail === 'number') {
+        setUnreadCount(custom.detail);
+      }
+    };
+    window.addEventListener('unread-count-updated', handleCount);
+    return () => window.removeEventListener('unread-count-updated', handleCount);
   }, [ready, session?.token, pathname]);
 
   const profileHref = session?.user?.username ? `/profile/${session.user.username}` : '/profile';

@@ -137,10 +137,10 @@ export const api = {
     apiFetch<{ comment: Comment }>(`/comments/thoughts/${thoughtId}`, { method: 'POST', token, body: JSON.stringify(payload) }),
   likeComment: (id: string, token: string) => apiFetch<{ liked: boolean; likes: number }>(`/likes/comments/${id}`, { method: 'POST', token }),
   searchUsers: (q: string) => apiFetch<{ users: User[] }>(`/users/search?q=${encodeURIComponent(q)}`),
-  getProfile: (username: string, token?: string) => apiFetch<{ profile: User; thoughts: Thought[]; isFollowing: boolean }>(`/users/${username}`, { token }),
-  getFollowers: (username: string) => apiFetch<{ followers: User[] }>(`/users/${username}/followers`),
-  getFollowing: (username: string) => apiFetch<{ following: User[] }>(`/users/${username}/following`),
-  updateMe: (payload: Partial<{ name: string; username: string; bio: string; avatar: string; website: string; location: string }>, token: string) =>
+  getProfile: (username: string, token?: string) => apiFetch<{ profile: User; thoughts: Thought[]; isFollowing: boolean; isPrivateLocked?: boolean }>(`/users/${username}`, { token }),
+  getFollowers: (username: string) => apiFetch<{ followers: User[]; isPrivateLocked?: boolean }>(`/users/${username}/followers`),
+  getFollowing: (username: string) => apiFetch<{ following: User[]; isPrivateLocked?: boolean }>(`/users/${username}/following`),
+  updateMe: (payload: Partial<{ name: string; username: string; bio: string; avatar: string; website: string; location: string; isPrivate: boolean }>, token: string) =>
     apiFetch<{ user: User }>('/users/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
   savedThoughts: (token: string) => apiFetch<{ thoughts: Thought[] }>('/users/saved/thoughts', { token }),
   followUser: (userId: string, token: string) => apiFetch<{ following: boolean; followers: number; followingCount: number }>(`/follows/${userId}`, { method: 'POST', token }),

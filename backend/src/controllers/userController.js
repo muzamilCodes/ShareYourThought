@@ -15,6 +15,7 @@ function safeUser(user) {
     avatar: user.avatar,
     website: user.website,
     location: user.location,
+    isPrivate: Boolean(user.isPrivate),
     followers: Array.isArray(user.followers) ? user.followers.length : user.followers || 0,
     following: Array.isArray(user.following) ? user.following.length : user.following || 0,
     savedThoughts: Array.isArray(user.savedThoughts) ? user.savedThoughts.length : user.savedThoughts || 0,
@@ -30,7 +31,7 @@ export const getMe = asyncHandler(async (req, res) => {
 });
 
 export const updateMe = asyncHandler(async (req, res) => {
-  const { name, username, bio, avatar, website, location } = req.body;
+  const { name, username, bio, avatar, website, location, isPrivate } = req.body;
   const user = await User.findById(req.user._id);
   if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -45,6 +46,7 @@ export const updateMe = asyncHandler(async (req, res) => {
   if (avatar !== undefined) user.avatar = avatar;
   if (website !== undefined) user.website = website;
   if (location !== undefined) user.location = location;
+  if (isPrivate !== undefined) user.isPrivate = Boolean(isPrivate);
 
   await user.save();
   const updated = await User.findById(user._id).select('-password');
@@ -68,16 +70,34 @@ export const getProfile = asyncHandler(async (req, res) => {
   const profile = await User.findOne({ username: req.params.username.toLowerCase() }).select('-password');
   if (!profile) return res.status(404).json({ message: 'Profile not found' });
 
-  const thoughts = await Thought.find({ author: profile._id })
-    .sort({ createdAt: -1 })
-    .limit(24)
-    .populate('author', 'name username avatar bio');
-
+  const isSelf = req.user && req.user._id.toString() === profile._id.toString();
   const isFollowing = req.user
     ? (profile.followers || []).some((id) => id.toString() === req.user._id.toString())
     : false;
 
-  res.json({ profile: safeUser(profile), thoughts, isFollowing });
+  // Private Account Protection
+  const isPrivateLocked = Boolean(profile.isPrivate) && !isSelf && !isFollowing;
+
+  if (isPrivateLocked) {
+    return res.json({
+      profile: safeUser(profile),
+      thoughts: [],
+      isFollowing,
+      isPrivateLocked: true
+    });
+  }
+
+  const thoughts = await Thought.find({ author: profile._id })
+    .sort({ createdAt: -1 })
+    .limit(40)
+    .populate('author', 'name username avatar bio');
+
+  res.json({
+    profile: safeUser(profile),
+    thoughts,
+    isFollowing,
+    isPrivateLocked: false
+  });
 });
 
 export const getSavedThoughts = asyncHandler(async (req, res) => {
@@ -118,13 +138,33 @@ export const toggleFollow = asyncHandler(async (req, res) => {
 });
 
 export const getFollowers = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('followers', 'name username avatar bio');
+  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('followers', 'name username avatar bio isPrivate');
   if (!user) return res.status(404).json({ message: 'Profile not found' });
+
+  const isSelf = req.user && req.user._id.toString() === user._id.toString();
+  const isFollowing = req.user
+    ? (user.followers || []).some((f) => (f._id || f).toString() === req.user._id.toString())
+    : false;
+
+  if (user.isPrivate && !isSelf && !isFollowing) {
+    return res.json({ followers: [], isPrivateLocked: true });
+  }
+
   res.json({ followers: (user.followers || []).map(safeUser) });
 });
 
 export const getFollowing = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('following', 'name username avatar bio');
+  const user = await User.findOne({ username: req.params.username.toLowerCase() }).populate('following', 'name username avatar bio isPrivate');
   if (!user) return res.status(404).json({ message: 'Profile not found' });
+
+  const isSelf = req.user && req.user._id.toString() === user._id.toString();
+  const isFollowing = req.user
+    ? (user.followers || []).some((f) => (f._id || f).toString() === req.user._id.toString())
+    : false;
+
+  if (user.isPrivate && !isSelf && !isFollowing) {
+    return res.json({ following: [], isPrivateLocked: true });
+  }
+
   res.json({ following: (user.following || []).map(safeUser) });
 });

@@ -17,6 +17,41 @@ function formatDate(value: string) {
   }
 }
 
+export function CustomBookmarkIcon({ saved, size = 18 }: { saved: boolean; size?: number }) {
+  if (saved) {
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="var(--ember)"
+        stroke="var(--ember)"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'all 150ms ease' }}
+      >
+        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ display: 'inline-block', verticalAlign: 'middle', transition: 'all 150ms ease' }}
+    >
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export function ThoughtCard({
   thought,
   compact = false,
@@ -561,9 +596,10 @@ export function ThoughtCard({
               <button
                 className={`thought-action insta-action-btn ${saved ? 'is-active is-saved' : ''}`}
                 onClick={handleSave}
-                title={saved ? 'Unsave' : 'Save'}
+                title={saved ? 'Remove Bookmark' : 'Save Thought'}
+                aria-label={saved ? 'Remove Bookmark' : 'Save Thought'}
               >
-                <span className="insta-action-icon">{saved ? '🔖' : '🏷️'}</span>
+                <CustomBookmarkIcon saved={saved} size={19} />
               </button>
             </div>
           </div>
@@ -617,111 +653,4 @@ export function ThoughtCard({
   );
 }
 
-export function ProfileCard({
-  profile,
-  isFollowing,
-  onToggleFollow,
-  isSelf,
-  activeTab,
-  onTabChange,
-  thoughtsCount
-}: {
-  profile: User;
-  isFollowing: boolean;
-  onToggleFollow: () => void;
-  isSelf?: boolean;
-  activeTab?: 'thoughts' | 'followers' | 'following' | 'saved';
-  onTabChange?: (tab: 'thoughts' | 'followers' | 'following' | 'saved') => void;
-  thoughtsCount?: number;
-}) {
-  if (!profile) return null;
-
-  const profileName = profile.name || profile.username || 'Anonymous';
-  const profileUsername = profile.username || 'user';
-  const avatarUrl =
-    profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profileName)}`;
-
-  const followersNum = typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0;
-  const followingNum = typeof profile.following === 'number' ? profile.following : profile.following?.length || 0;
-  const savedNum = typeof profile.savedThoughts === 'number' ? profile.savedThoughts : profile.savedThoughts?.length || 0;
-
-  return (
-    <aside className="profile-card">
-      <div className="profile-top">
-        <div className="brand-lockup">
-          <img className="avatar-lg" src={avatarUrl} alt={profileName} />
-          <div>
-            <h2 className="profile-name">{profileName}</h2>
-            <div className="profile-handle">@{profileUsername}</div>
-          </div>
-        </div>
-        {!isSelf ? (
-          <button className={`button ${isFollowing ? 'button-outline' : ''}`} onClick={onToggleFollow}>
-            {isFollowing ? 'Unfollow' : 'Follow'}
-          </button>
-        ) : (
-          <Link href="/settings" className="button-outline">
-            Edit
-          </Link>
-        )}
-      </div>
-      <p className="profile-bio">{profile.bio || 'Thinking in public.'}</p>
-      {profile.location ? <p className="meta" style={{ marginTop: '-8px' }}>📍 {profile.location}</p> : null}
-      {profile.website ? (
-        <p className="meta" style={{ marginTop: '-4px' }}>
-          🔗{' '}
-          <a
-            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{ textDecoration: 'underline' }}
-          >
-            {profile.website}
-          </a>
-        </p>
-      ) : null}
-      <div className="profile-stats">
-        {thoughtsCount !== undefined ? (
-          <button
-            type="button"
-            className={`profile-stat-btn ${activeTab === 'thoughts' ? 'is-active' : ''}`}
-            onClick={() => onTabChange?.('thoughts')}
-            title="View thoughts"
-          >
-            <strong>{thoughtsCount}</strong>
-            <span>Thoughts</span>
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className={`profile-stat-btn ${activeTab === 'followers' ? 'is-active' : ''}`}
-          onClick={() => onTabChange?.('followers')}
-          title="View followers"
-        >
-          <strong>{followersNum}</strong>
-          <span>Followers</span>
-        </button>
-        <button
-          type="button"
-          className={`profile-stat-btn ${activeTab === 'following' ? 'is-active' : ''}`}
-          onClick={() => onTabChange?.('following')}
-          title="View following"
-        >
-          <strong>{followingNum}</strong>
-          <span>Following</span>
-        </button>
-        {(isSelf || savedNum > 0) ? (
-          <button
-            type="button"
-            className={`profile-stat-btn ${activeTab === 'saved' ? 'is-active' : ''}`}
-            onClick={() => onTabChange?.('saved')}
-            title="View saved thoughts"
-          >
-            <strong>{savedNum}</strong>
-            <span>Saved</span>
-          </button>
-        ) : null}
-      </div>
-    </aside>
-  );
-}
+export { ProfileCard } from './ProfileCard';

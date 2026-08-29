@@ -60,6 +60,7 @@ export type User = {
   followers?: number | Array<string | User>;
   following?: number | Array<string | User>;
   savedThoughts?: number | Array<string | Thought>;
+  isPrivate?: boolean;
   role?: string;
   createdAt?: string;
 };

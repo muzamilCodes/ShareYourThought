@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     savedThoughts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thought' }],
+    isPrivate: { type: Boolean, default: false },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     role: { type: String, enum: ['user', 'admin'], default: 'user' }

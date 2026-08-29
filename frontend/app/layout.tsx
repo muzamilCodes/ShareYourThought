@@ -4,6 +4,7 @@ import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { BottomNav } from '../components/BottomNav';
 import { PwaManager } from '../components/PwaManager';
+import { RealtimeNotifications } from '../components/RealtimeNotifications';
 
 export const metadata: Metadata = {
   title: 'ThoughtShare — Editorial Social Platform',
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Footer />
           <BottomNav />
           <PwaManager />
+          <RealtimeNotifications />
         </div>
       </body>
     </html>

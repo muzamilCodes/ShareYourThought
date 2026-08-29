@@ -16,7 +16,8 @@ export default function SettingsPage() {
     bio: '',
     avatar: '',
     website: '',
-    location: ''
+    location: '',
+    isPrivate: false
   });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ email: '', token: '', password: '' });
@@ -35,7 +36,8 @@ export default function SettingsPage() {
         bio: session.user.bio || '',
         avatar: session.user.avatar || '',
         website: session.user.website || '',
-        location: session.user.location || ''
+        location: session.user.location || '',
+        isPrivate: Boolean(session.user.isPrivate)
       });
       setForgotEmail(session.user.email || '');
     }
@@ -222,6 +224,87 @@ export default function SettingsPage() {
                     )}
                   </div>
                 ))}
+
+                {/* Account Privacy Toggle */}
+                <div
+                  style={{
+                    background: 'var(--paper)',
+                    padding: '16px 18px',
+                    borderRadius: '16px',
+                    border: '1px solid var(--line)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '16px',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: '220px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.96rem', color: 'var(--ink)' }}>
+                        🔒 Private Account
+                      </strong>
+                      <span
+                        style={{
+                          fontSize: '0.70rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          background: profile.isPrivate ? 'rgba(200, 109, 52, 0.15)' : 'var(--line)',
+                          color: profile.isPrivate ? 'var(--ember)' : 'var(--muted)'
+                        }}
+                      >
+                        {profile.isPrivate ? 'PRIVATE' : 'PUBLIC'}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.80rem', color: 'var(--muted)', display: 'block', marginTop: '4px' }}>
+                      When enabled, other users must follow you to see your published thoughts, photos, and followers.
+                    </span>
+                  </div>
+
+                  <label
+                    style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '48px',
+                      height: '26px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={profile.isPrivate}
+                      onChange={(e) => setProfile((prev) => ({ ...prev, isPrivate: e.target.checked }))}
+                      style={{ opacity: 0, width: 0, height: 0 }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundColor: profile.isPrivate ? 'var(--ember)' : 'var(--line-strong)',
+                        borderRadius: '24px',
+                        transition: '0.2s',
+                        display: 'block'
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute',
+                          height: '20px',
+                          width: '20px',
+                          left: profile.isPrivate ? '24px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: '#ffffff',
+                          borderRadius: '50%',
+                          transition: '0.2s',
+                          display: 'block',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}
+                      />
+                    </span>
+                  </label>
+                </div>
+
                 <div className="form-actions">
                   <button className="button" type="submit" disabled={loadingProfile || uploadingAvatar}>
                     {loadingProfile ? 'Saving…' : 'Save Profile'}
