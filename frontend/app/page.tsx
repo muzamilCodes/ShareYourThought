@@ -60,24 +60,46 @@ export default function HomePage() {
       <div className="container mobile-only" style={{ marginBottom: '16px' }}>
         <Link
           href="/create"
-          className="note-card"
           style={{
             display: 'flex',
+            flexDirection: 'row',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '12px',
-            padding: '12px 16px',
+            padding: '10px 16px',
             borderRadius: '16px',
             textDecoration: 'none',
             color: 'inherit',
             background: 'var(--paper)',
-            boxShadow: 'var(--shadow)'
+            border: '1px solid var(--line)',
+            boxShadow: 'var(--shadow)',
+            flexWrap: 'nowrap'
           }}
         >
-          <span style={{ fontSize: '1.4rem' }}>✍️</span>
-          <div style={{ flex: 1, fontSize: '0.9rem', color: 'var(--muted)' }}>
-            What's on your mind? Share a thought…
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>✍️</span>
+            <span
+              style={{
+                fontSize: '0.88rem',
+                color: 'var(--muted)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}
+            >
+              What&apos;s on your mind?
+            </span>
           </div>
-          <span className="button" style={{ fontSize: '0.78rem', padding: '6px 12px', minHeight: 'auto' }}>
+          <span
+            className="button"
+            style={{
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              minHeight: 'auto',
+              flexShrink: 0,
+              borderRadius: '20px'
+            }}
+          >
             Post
           </span>
         </Link>

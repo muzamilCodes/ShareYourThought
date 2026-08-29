@@ -297,8 +297,16 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* Visibility Utilities */
-.mobile-only { display: none !important; }
-.desktop-only { display: flex !important; }
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
+  .desktop-only { display: flex !important; }
+}
+
+@media (max-width: 768px) {
+  .mobile-only { display: block !important; }
+  .mobile-only-flex { display: flex !important; }
+  .desktop-only { display: none !important; }
+}
 
 /* Mobile Header */
 .mobile-header {
