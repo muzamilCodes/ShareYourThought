@@ -68,6 +68,44 @@ export function clearStoredSession() {
 
 export const api = {
   health: () => apiFetch<{ ok: boolean; service: string }>('/health'),
+  
+  // OTP Registration
+  sendRegisterOtp: (payload: { name: string; username: string; email: string; password: string }) =>
+    apiFetch<{ message: string; email: string; previewOtp?: string }>('/auth/otp/send-register', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  verifyRegisterOtp: (payload: { email: string; otp: string; name?: string; username?: string; password?: string }) =>
+    apiFetch<AuthSession>('/auth/otp/verify-register', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  // OTP Login
+  sendLoginOtp: (payload: { identifier: string }) =>
+    apiFetch<{ message: string; email: string; previewOtp?: string }>('/auth/otp/send-login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  verifyLoginOtp: (payload: { identifier: string; otp: string }) =>
+    apiFetch<AuthSession>('/auth/otp/verify-login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  // OTP Forgot Password
+  sendForgotPasswordOtp: (payload: { email: string }) =>
+    apiFetch<{ message: string; email: string; previewOtp?: string }>('/auth/otp/send-forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  verifyResetPasswordOtp: (payload: { email: string; otp: string; newPassword: string }) =>
+    apiFetch<AuthSession>('/auth/otp/verify-reset-password', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+
+  // Standard Password Auth
   register: (payload: { name: string; username: string; email: string; password: string }) =>
     apiFetch<AuthSession>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload: { identifier: string; password: string }) =>
