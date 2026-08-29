@@ -15,8 +15,8 @@ export default function ProfilePage() {
   const username = Array.isArray(rawUsername)
     ? rawUsername[0]
     : rawUsername
-    ? String(rawUsername).toLowerCase()
-    : '';
+      ? String(rawUsername).toLowerCase()
+      : '';
 
   const { session, ready } = useSession();
   const [profile, setProfile] = useState<User | null>(null);
@@ -72,8 +72,8 @@ export default function ProfilePage() {
   const currentUserId = session?.user?._id || session?.user?.id;
   const isSelf = Boolean(
     profile &&
-      currentUserId &&
-      (profile._id === currentUserId || profile.id === currentUserId || profile.username === session?.user?.username)
+    currentUserId &&
+    (profile._id === currentUserId || profile.id === currentUserId || profile.username === session?.user?.username)
   );
 
   const toggleFollow = async () => {
@@ -244,6 +244,7 @@ export default function ProfilePage() {
               ) : (
                 <p className="empty-state">No followers yet.</p>
               )}
+
             </div>
           )}
 
