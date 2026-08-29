@@ -70,7 +70,7 @@ export const api = {
   health: () => apiFetch<{ ok: boolean; service: string }>('/health'),
   
   // OTP Registration
-  sendRegisterOtp: (payload: { name: string; username: string; email: string; password: string }) =>
+  sendRegisterOtp: (payload: { name: string; username?: string; email: string; password: string }) =>
     apiFetch<{ message: string; email: string; previewOtp?: string }>('/auth/otp/send-register', {
       method: 'POST',
       body: JSON.stringify(payload)
@@ -106,7 +106,7 @@ export const api = {
     }),
 
   // Standard Password Auth
-  register: (payload: { name: string; username: string; email: string; password: string }) =>
+  register: (payload: { name: string; username?: string; email: string; password: string }) =>
     apiFetch<AuthSession>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload: { identifier: string; password: string }) =>
     apiFetch<AuthSession>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),

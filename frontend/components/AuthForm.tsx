@@ -132,13 +132,11 @@ export function AuthForm({
     try {
       if (currentMode === 'register') {
         if (!form.name.trim()) throw new Error('Full Name is required');
-        if (!form.username.trim()) throw new Error('Username is required');
         if (!form.email.trim()) throw new Error('Email address is required');
         if (!form.password || form.password.length < 8) throw new Error('Password must be at least 8 characters');
 
         const res = await api.sendRegisterOtp({
           name: form.name.trim(),
-          username: form.username.trim(),
           email: form.email.trim(),
           password: form.password
         });
@@ -218,7 +216,6 @@ export function AuthForm({
           email: targetEmail || form.email.trim(),
           otp: fullCode,
           name: form.name.trim(),
-          username: form.username.trim(),
           password: form.password
         });
       } else if (currentMode === 'login') {
@@ -261,7 +258,6 @@ export function AuthForm({
       if (currentMode === 'register') {
         const res = await api.sendRegisterOtp({
           name: form.name.trim(),
-          username: form.username.trim(),
           email: targetEmail || form.email.trim(),
           password: form.password
         });
@@ -422,19 +418,6 @@ export function AuthForm({
                   value={form.name}
                   onChange={handleChange}
                   placeholder="e.g. Mina Hart"
-                  required
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="username">Username</label>
-                <input
-                  className="input"
-                  id="username"
-                  name="username"
-                  value={form.username}
-                  onChange={handleChange}
-                  placeholder="e.g. minahart"
                   required
                 />
               </div>

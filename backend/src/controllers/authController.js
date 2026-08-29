@@ -38,11 +38,34 @@ function authResponse(res, user, status = 200) {
   return res.status(status).json({ token, user: publicUser(user) });
 }
 
+async function generateUniqueUsername(name, email) {
+  let raw = (name || (email ? email.split('@')[0] : 'user'))
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, '');
+
+  if (!raw || raw.length < 2) {
+    raw = 'user';
+  }
+
+  let candidate = raw.slice(0, 25);
+  let existing = await User.findOne({ username: candidate });
+  if (!existing) return candidate;
+
+  while (existing) {
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    candidate = `${raw.slice(0, 20)}${randomSuffix}`;
+    existing = await User.findOne({ username: candidate });
+  }
+
+  return candidate;
+}
+
 // 1. Send OTP for Registration
 export const sendRegisterOtp = asyncHandler(async (req, res) => {
   const { name, username, email, password } = req.body;
-  if (!name || !username || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required' });
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Name, email, and password are required' });
   }
 
   if (String(password).length < 8) {
@@ -50,18 +73,21 @@ export const sendRegisterOtp = asyncHandler(async (req, res) => {
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
-  const cleanUsername = String(username).trim().toLowerCase();
+  const cleanName = String(name).trim();
 
-  const [existingEmail, existingUsername] = await Promise.all([
-    User.findOne({ email: cleanEmail }),
-    User.findOne({ username: cleanUsername })
-  ]);
-
+  const existingEmail = await User.findOne({ email: cleanEmail });
   if (existingEmail) {
     return res.status(409).json({ message: 'An account with this email already exists' });
   }
-  if (existingUsername) {
-    return res.status(409).json({ message: 'This username is already taken' });
+
+  let finalUsername = username ? String(username).trim().toLowerCase() : '';
+  if (finalUsername) {
+    const existingUsername = await User.findOne({ username: finalUsername });
+    if (existingUsername) {
+      finalUsername = await generateUniqueUsername(cleanName, cleanEmail);
+    }
+  } else {
+    finalUsername = await generateUniqueUsername(cleanName, cleanEmail);
   }
 
   // Invalidate any existing unused register OTPs for this email
@@ -79,8 +105,8 @@ export const sendRegisterOtp = asyncHandler(async (req, res) => {
     code,
     purpose: 'register',
     payload: {
-      name: String(name).trim(),
-      username: cleanUsername,
+      name: cleanName,
+      username: finalUsername,
       email: cleanEmail,
       password: String(password)
     },
@@ -127,23 +153,25 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
   await otpDoc.save();
 
   const regName = (otpDoc.payload && otpDoc.payload.name) || (name ? String(name).trim() : '');
-  const regUsername = (otpDoc.payload && otpDoc.payload.username) || (username ? String(username).trim().toLowerCase() : '');
   const regPassword = (otpDoc.payload && otpDoc.payload.password) || password;
+  let regUsername = (otpDoc.payload && otpDoc.payload.username) || (username ? String(username).trim().toLowerCase() : '');
 
-  if (!regName || !regUsername || !regPassword) {
+  if (!regName || !regPassword) {
     return res.status(400).json({ message: 'Registration payload missing. Please try registering again.' });
   }
 
-  const [existingEmail, existingUsername] = await Promise.all([
-    User.findOne({ email: cleanEmail }),
-    User.findOne({ username: regUsername })
-  ]);
-
+  const existingEmail = await User.findOne({ email: cleanEmail });
   if (existingEmail) {
     return res.status(409).json({ message: 'An account with this email already exists' });
   }
-  if (existingUsername) {
-    return res.status(409).json({ message: 'This username is already taken' });
+
+  if (!regUsername) {
+    regUsername = await generateUniqueUsername(regName, cleanEmail);
+  } else {
+    const existingUser = await User.findOne({ username: regUsername });
+    if (existingUser) {
+      regUsername = await generateUniqueUsername(regName, cleanEmail);
+    }
   }
 
   const user = await User.create({
@@ -157,6 +185,7 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
   const safeUser = await User.findById(user._id).select('-password');
   authResponse(res, safeUser, 201);
 });
+
 
 // 3. Send OTP for Login
 export const sendLoginOtp = asyncHandler(async (req, res) => {
@@ -243,31 +272,34 @@ export const verifyLoginOtp = asyncHandler(async (req, res) => {
 // Direct Password Register
 export const register = asyncHandler(async (req, res) => {
   const { name, username, email, password } = req.body;
-  if (!name || !username || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required' });
+  if (!name || !email || !password) {
+    return res.status(400).json({ message: 'Name, email, and password are required' });
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
-  const cleanUsername = String(username).trim().toLowerCase();
+  const cleanName = String(name).trim();
 
-  const [existingEmail, existingUsername] = await Promise.all([
-    User.findOne({ email: cleanEmail }),
-    User.findOne({ username: cleanUsername })
-  ]);
-
+  const existingEmail = await User.findOne({ email: cleanEmail });
   if (existingEmail) {
     return res.status(409).json({ message: 'An account with this email already exists' });
   }
-  if (existingUsername) {
-    return res.status(409).json({ message: 'This username is already taken' });
+
+  let finalUsername = username ? String(username).trim().toLowerCase() : '';
+  if (!finalUsername) {
+    finalUsername = await generateUniqueUsername(cleanName, cleanEmail);
+  } else {
+    const existingUsername = await User.findOne({ username: finalUsername });
+    if (existingUsername) {
+      finalUsername = await generateUniqueUsername(cleanName, cleanEmail);
+    }
   }
 
   const user = await User.create({
-    name: String(name).trim(),
-    username: cleanUsername,
+    name: cleanName,
+    username: finalUsername,
     email: cleanEmail,
     password,
-    avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`
+    avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanName)}`
   });
 
   const safeUser = await User.findById(user._id).select('-password');
