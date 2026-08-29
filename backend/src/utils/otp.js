@@ -9,19 +9,29 @@ export const generateOtpCode = () => {
   return String(crypto.randomInt(min, max));
 };
 
+let cachedTransporter = null;
+
 function getTransporter() {
   if (!env.smtpHost || !env.smtpUser || !env.smtpPass) {
     return null;
   }
-  return nodemailer.createTransport({
-    host: env.smtpHost,
-    port: env.smtpPort || 587,
-    secure: env.smtpSecure,
-    auth: {
-      user: env.smtpUser,
-      pass: env.smtpPass
-    }
-  });
+  if (!cachedTransporter) {
+    cachedTransporter = nodemailer.createTransport({
+      host: env.smtpHost,
+      port: env.smtpPort || 587,
+      secure: env.smtpSecure,
+      pool: true,
+      maxConnections: 5,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 8000,
+      auth: {
+        user: env.smtpUser,
+        pass: env.smtpPass
+      }
+    });
+  }
+  return cachedTransporter;
 }
 
 export const deliverOtp = async ({ contact, code, purpose }) => {

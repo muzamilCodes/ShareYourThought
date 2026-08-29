@@ -113,11 +113,12 @@ export const sendRegisterOtp = asyncHandler(async (req, res) => {
     expiresAt
   });
 
-  await deliverOtp({
+  // Deliver OTP in background so user transitions to OTP screen immediately
+  deliverOtp({
     contact: cleanEmail,
     code,
     purpose: 'register'
-  });
+  }).catch((err) => console.error('[Background Register OTP Email Error]:', err.message));
 
   res.json({
     message: `A 6-digit verification code has been sent to ${cleanEmail}`,
@@ -219,11 +220,12 @@ export const sendLoginOtp = asyncHandler(async (req, res) => {
     expiresAt
   });
 
-  await deliverOtp({
+  // Deliver OTP in background
+  deliverOtp({
     contact: user.email,
     code,
     purpose: 'login'
-  });
+  }).catch((err) => console.error('[Background Login OTP Email Error]:', err.message));
 
   res.json({
     message: `A 6-digit login code has been sent to ${user.email}`,
@@ -362,11 +364,11 @@ export const sendForgotPasswordOtp = asyncHandler(async (req, res) => {
     expiresAt
   });
 
-  await deliverOtp({
+  deliverOtp({
     contact: cleanEmail,
     code,
     purpose: 'reset-password'
-  });
+  }).catch((err) => console.error('[Background Reset Password OTP Email Error]:', err.message));
 
   res.json({
     message: `A 6-digit password reset code has been sent to ${cleanEmail}`,
