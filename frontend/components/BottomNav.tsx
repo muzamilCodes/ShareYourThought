@@ -24,6 +24,7 @@ export function BottomNav() {
   }, [ready, session?.token, pathname]);
 
   const userProfileHref = session?.user?.username ? `/profile/${session.user.username}` : '/login';
+  const userAvatar = session?.user?.avatar;
 
   const navItems = [
     {
@@ -41,7 +42,7 @@ export function BottomNav() {
     {
       href: '/create',
       label: 'Create',
-      icon: '✍️',
+      icon: '➕',
       isFab: true,
       isActive: pathname === '/create'
     },
@@ -55,7 +56,15 @@ export function BottomNav() {
     {
       href: userProfileHref,
       label: session ? 'Profile' : 'Sign In',
-      icon: '👤',
+      icon: userAvatar ? (
+        <img
+          src={userAvatar}
+          alt="Profile"
+          style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+        />
+      ) : (
+        '👤'
+      ),
       isActive: pathname.startsWith('/profile') || pathname === '/login' || pathname === '/register'
     }
   ];

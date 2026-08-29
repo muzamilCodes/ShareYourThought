@@ -95,101 +95,11 @@ export function Navbar() {
           ) : null}
         </div>
 
-        {/* Mobile Header Controls (Right side of top bar) */}
+        {/* Mobile Header Controls (Right side of top bar: only clean Theme Toggle) */}
         <div className="mobile-header-actions mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ThemeToggle compact />
-          <Link href="/create" className="mobile-icon-btn" title="Create Thought" onClick={() => setMobileMenuOpen(false)}>
-            ➕
-          </Link>
-          {ready && session ? (
-            <>
-              <Link href="/notifications" className="mobile-icon-btn" title="Notifications" onClick={() => setMobileMenuOpen(false)}>
-                🔔
-              </Link>
-              <Link href={`/profile/${session.user.username}`} className="mobile-icon-btn" title="Profile" onClick={() => setMobileMenuOpen(false)}>
-                👤
-              </Link>
-            </>
-          ) : null}
-          <button
-            type="button"
-            className="mobile-hamburger-btn"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? '✕' : '☰'}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen ? (
-        <div className="mobile-menu-drawer mobile-only">
-          <form className="nav-search mobile-search-form" onSubmit={handleSearch}>
-            <span className="mono" style={{ fontSize: '0.75rem' }}>Search</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search thoughts, users…"
-              aria-label="Search thoughts or users"
-            />
-          </form>
-
-          <nav className="mobile-nav-links">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="mobile-nav-link"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="mobile-auth-actions">
-            {ready && session ? (
-              <>
-                <Link
-                  href={`/profile/${session.user.username}`}
-                  className="button"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  👤 My Profile (@{session.user.username})
-                </Link>
-                <button
-                  className="button-outline"
-                  onClick={handleLogout}
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  Logout
-                </button>
-              </>
-            ) : ready ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-                <Link
-                  href="/login"
-                  className="button"
-                  style={{ justifyContent: 'center' }}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="button-outline"
-                  style={{ justifyContent: 'center' }}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Register
-                </Link>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
     </header>
   );
 }
