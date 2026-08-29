@@ -135,6 +135,9 @@ export default function ProfilePage() {
           isFollowing={isFollowing}
           onToggleFollow={toggleFollow}
           isSelf={isSelf}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          thoughtsCount={thoughts.length}
         />
         <div className="profile-summary">
           <section className="profile-hero">

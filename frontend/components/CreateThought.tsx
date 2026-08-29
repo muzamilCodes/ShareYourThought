@@ -174,9 +174,9 @@ export function CreateThought({
           />
         </div>
 
-        {/* Image Attachment Box (Direct Mobile / File Upload + URL Option) */}
+        {/* Image Attachment Box (Direct Mobile / File Upload + URL Option + Fit Controls) */}
         <div className="field" style={{ background: 'rgba(20, 20, 17, 0.03)', padding: '16px', borderRadius: '16px', border: '1px dashed var(--line-strong)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <label style={{ fontWeight: 700, margin: 0, fontSize: '0.92rem' }}>
               🖼️ Attach Photo (Optional)
             </label>
@@ -186,13 +186,14 @@ export function CreateThought({
                 onClick={() => setImageMode('upload')}
                 style={{
                   fontSize: '0.78rem',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   border: 'none',
                   background: imageMode === 'upload' ? 'var(--ink)' : 'transparent',
                   color: imageMode === 'upload' ? '#ffffff' : 'var(--muted)',
                   cursor: 'pointer',
-                  fontWeight: 600
+                  fontWeight: 700,
+                  transition: 'all 150ms ease'
                 }}
               >
                 📷 Upload / Camera
@@ -202,13 +203,14 @@ export function CreateThought({
                 onClick={() => setImageMode('url')}
                 style={{
                   fontSize: '0.78rem',
-                  padding: '4px 8px',
-                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
                   border: 'none',
                   background: imageMode === 'url' ? 'var(--ink)' : 'transparent',
                   color: imageMode === 'url' ? '#ffffff' : 'var(--muted)',
                   cursor: 'pointer',
-                  fontWeight: 600
+                  fontWeight: 700,
+                  transition: 'all 150ms ease'
                 }}
               >
                 🔗 Image URL
@@ -234,24 +236,27 @@ export function CreateThought({
                   disabled={imageProcessing}
                   style={{
                     width: '100%',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--line-strong)',
+                    padding: '20px 16px',
+                    borderRadius: '14px',
+                    border: '1.5px dashed var(--line-strong)',
                     background: '#ffffff',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
+                    gap: '8px',
                     cursor: 'pointer',
-                    color: 'var(--ink)'
+                    color: 'var(--ink)',
+                    transition: 'all 180ms ease'
                   }}
                 >
-                  <span style={{ fontSize: '1.6rem' }}>📸</span>
-                  <strong style={{ fontSize: '0.92rem' }}>
-                    {imageProcessing ? 'Processing image…' : 'Tap to Choose Photo from Phone or Laptop'}
+                  <span style={{ fontSize: '2rem' }}>📸</span>
+                  <strong style={{ fontSize: '0.95rem' }}>
+                    {imageProcessing ? 'Compressing & Fitting Photo…' : 'Tap to Choose Photo from Phone or Laptop'}
                   </strong>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Supports Camera, Gallery, JPG, PNG, WEBP</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                    Auto-optimized for crisp quality (Camera, Gallery, JPG, PNG, WEBP)
+                  </span>
                 </button>
               ) : null}
             </div>
@@ -263,42 +268,115 @@ export function CreateThought({
                 name="imageUrl"
                 value={form.imageUrl}
                 onChange={handleChange}
-                placeholder="Paste image link e.g. https://images.unsplash.com/..."
+                placeholder="Paste direct image URL e.g. https://images.unsplash.com/..."
               />
             </div>
           )}
 
-          {/* Image Preview Thumbnail */}
+          {/* Enhanced Live Image Preview with Fit Controls */}
           {form.imageUrl ? (
-            <div style={{ position: 'relative', marginTop: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--line)' }}>
-              <img
-                src={form.imageUrl}
-                alt="Selected attachment"
-                style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', display: 'block' }}
-              />
-              <button
-                type="button"
-                onClick={handleRemoveImage}
+            <div style={{ marginTop: '12px' }}>
+              <div
                 style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'rgba(0, 0, 0, 0.75)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '6px 12px',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  position: 'relative',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  background: '#0a0a0a',
+                  border: '1px solid var(--line)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  backdropFilter: 'blur(4px)'
+                  justifyContent: 'center',
+                  minHeight: '200px',
+                  maxHeight: '380px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.12)'
                 }}
               >
-                ✕ Remove Image
-              </button>
+                <img
+                  src={form.imageUrl}
+                  alt="Selected attachment preview"
+                  style={{
+                    width: '100%',
+                    maxHeight: '380px',
+                    objectFit: 'contain',
+                    display: 'block',
+                    margin: '0 auto'
+                  }}
+                />
+
+                {/* Top Action Floating Controls */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    right: '10px',
+                    display: 'flex',
+                    gap: '6px',
+                    zIndex: 2
+                  }}
+                >
+                  {imageMode === 'upload' ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '6px 12px',
+                        fontSize: '0.80rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        backdropFilter: 'blur(6px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      🔄 Change
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.85)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '20px',
+                      padding: '6px 12px',
+                      fontSize: '0.80rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      backdropFilter: 'blur(6px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    ✕ Remove
+                  </button>
+                </div>
+
+                {/* Bottom Photo Fit Indicator */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '8px',
+                    left: '10px',
+                    background: 'rgba(0,0,0,0.65)',
+                    color: '#ffffff',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
+                  ✓ Auto-Fitted
+                </div>
+              </div>
             </div>
           ) : null}
         </div>
@@ -631,19 +709,34 @@ export function CommentSection({
       {isOpen ? (
         <div style={{ marginTop: '20px' }}>
           <form className="form-grid" onSubmit={submitComment}>
-            <textarea
-              className="textarea"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder={session ? 'Add a thoughtful comment to the conversation…' : 'Sign in to leave a comment…'}
-              rows={3}
-              required
-              autoFocus
-            />
-            <div className="form-actions">
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <img
+                src={
+                  session?.user?.avatar ||
+                  (session?.user?.name
+                    ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
+                    : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+                }
+                alt={session?.user?.name || 'You'}
+                className="avatar"
+                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: '2px' }}
+              />
+              <div style={{ flex: 1 }}>
+                <textarea
+                  className="textarea"
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder={session ? `Write your comment, ${session.user?.name || ''}…` : 'Sign in to leave a comment…'}
+                  rows={3}
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="form-actions" style={{ justifyContent: 'flex-end' }}>
               {session ? (
                 <button className="button" type="submit" disabled={submitting}>
-                  {submitting ? 'Posting…' : 'Post Comment'}
+                  {submitting ? 'Posting…' : '💬 Post Comment'}
                 </button>
               ) : (
                 <Link href="/login" className="button">

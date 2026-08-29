@@ -125,7 +125,6 @@ export const getThoughts = asyncHandler(async (req, res) => {
 });
 
 export const getThought = asyncHandler(async (req, res) => {
-  await Thought.findByIdAndUpdate(req.params.id, { $inc: { viewsCount: 1 } });
   const thought = await populateThought(Thought.findById(req.params.id));
   if (!thought) return res.status(404).json({ message: 'Thought not found' });
   res.json({ thought });

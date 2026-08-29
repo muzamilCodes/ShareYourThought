@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import type { Thought, User } from '../types';
+
+// Global session memory to prevent spamming duplicate views for the same thought
+const sessionViewedThoughts = new Set<string>();
 
 function formatDate(value: string) {
   try {
@@ -24,6 +27,7 @@ export function ThoughtCard({
   onDeleted?: (id: string) => void;
 }) {
   const { session, ready } = useSession();
+  const cardRef = useRef<HTMLElement | null>(null);
   const [currentThought, setCurrentThought] = useState<Thought>(thought);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -62,14 +66,67 @@ export function ThoughtCard({
     setSaves(thought.saves?.length || 0);
     setShares(thought.sharesCount || 0);
     setViews(thought.viewsCount || 0);
-
-    // Record view quietly
-    api.recordView(thought._id)
-      .then((res) => {
-        if (res?.views) setViews(res.views);
-      })
-      .catch(() => {});
   }, [thought]);
+
+  // Real View / Viewport Impression Tracking (only counts when visible in view area)
+  useEffect(() => {
+    if (!thought?._id) return;
+    const thoughtId = thought._id;
+
+    if (sessionViewedThoughts.has(thoughtId)) return;
+
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      if (!sessionViewedThoughts.has(thoughtId)) {
+        sessionViewedThoughts.add(thoughtId);
+        api.recordView(thoughtId)
+          .then((res) => {
+            if (typeof res?.views === 'number') setViews(res.views);
+          })
+          .catch(() => {});
+      }
+      return;
+    }
+
+    let impressionTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
+          if (!impressionTimer) {
+            impressionTimer = setTimeout(() => {
+              if (!sessionViewedThoughts.has(thoughtId)) {
+                sessionViewedThoughts.add(thoughtId);
+                api.recordView(thoughtId)
+                  .then((res) => {
+                    if (typeof res?.views === 'number') setViews(res.views);
+                  })
+                  .catch(() => {});
+              }
+              observer.disconnect();
+            }, 600);
+          }
+        } else {
+          if (impressionTimer) {
+            clearTimeout(impressionTimer);
+            impressionTimer = null;
+          }
+        }
+      },
+      {
+        threshold: [0.35],
+        rootMargin: '0px'
+      }
+    );
+
+    observer.observe(el);
+
+    return () => {
+      if (impressionTimer) clearTimeout(impressionTimer);
+      observer.disconnect();
+    };
+  }, [thought._id]);
 
   useEffect(() => {
     if (!ready || !currentUserId) return;
@@ -232,7 +289,7 @@ export function ThoughtCard({
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
 
   return (
-    <article className="thought-card instagram-card" id={`thought-${currentThought._id}`} style={{ position: 'relative' }}>
+    <article ref={cardRef} className="thought-card instagram-card" id={`thought-${currentThought._id}`} style={{ position: 'relative' }}>
       {/* Instagram Floating Heart Animation */}
       {showHeartBurst && (
         <div className="heart-burst-overlay">
@@ -523,8 +580,19 @@ export function ThoughtCard({
             ) : null}
           </div>
 
-          {/* Instagram Quick Comment Input */}
+          {/* Instagram Quick Comment Input with Current User Avatar */}
           <form className="insta-quick-comment-form" onSubmit={handleQuickCommentSubmit}>
+            <img
+              src={
+                session?.user?.avatar ||
+                (session?.user?.name
+                  ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
+                  : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+              }
+              alt={session?.user?.name || 'You'}
+              className="avatar-sm"
+              style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+            />
             <input
               type="text"
               placeholder="Add a comment…"
@@ -553,12 +621,18 @@ export function ProfileCard({
   profile,
   isFollowing,
   onToggleFollow,
-  isSelf
+  isSelf,
+  activeTab,
+  onTabChange,
+  thoughtsCount
 }: {
   profile: User;
   isFollowing: boolean;
   onToggleFollow: () => void;
   isSelf?: boolean;
+  activeTab?: 'thoughts' | 'followers' | 'following' | 'saved';
+  onTabChange?: (tab: 'thoughts' | 'followers' | 'following' | 'saved') => void;
+  thoughtsCount?: number;
 }) {
   if (!profile) return null;
 
@@ -607,18 +681,46 @@ export function ProfileCard({
         </p>
       ) : null}
       <div className="profile-stats">
-        <div className="profile-stat">
+        {thoughtsCount !== undefined ? (
+          <button
+            type="button"
+            className={`profile-stat-btn ${activeTab === 'thoughts' ? 'is-active' : ''}`}
+            onClick={() => onTabChange?.('thoughts')}
+            title="View thoughts"
+          >
+            <strong>{thoughtsCount}</strong>
+            <span>Thoughts</span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={`profile-stat-btn ${activeTab === 'followers' ? 'is-active' : ''}`}
+          onClick={() => onTabChange?.('followers')}
+          title="View followers"
+        >
           <strong>{followersNum}</strong>
           <span>Followers</span>
-        </div>
-        <div className="profile-stat">
+        </button>
+        <button
+          type="button"
+          className={`profile-stat-btn ${activeTab === 'following' ? 'is-active' : ''}`}
+          onClick={() => onTabChange?.('following')}
+          title="View following"
+        >
           <strong>{followingNum}</strong>
           <span>Following</span>
-        </div>
-        <div className="profile-stat">
-          <strong>{savedNum}</strong>
-          <span>Saved</span>
-        </div>
+        </button>
+        {(isSelf || savedNum > 0) ? (
+          <button
+            type="button"
+            className={`profile-stat-btn ${activeTab === 'saved' ? 'is-active' : ''}`}
+            onClick={() => onTabChange?.('saved')}
+            title="View saved thoughts"
+          >
+            <strong>{savedNum}</strong>
+            <span>Saved</span>
+          </button>
+        ) : null}
       </div>
     </aside>
   );

@@ -82,9 +82,9 @@ export default function HomePage() {
       </div>
 
       <section className="hero">
-        <div className="container hero-grid">
+        <div className="container">
           <Reveal>
-            <div className="hero-panel">
+            <div className="hero-panel" style={{ width: '100%' }}>
               <div className="hero-top">
                 <div className="hero-kicker">
                   <span className="brand-mark" /> A calm editorial space for public thought
@@ -118,43 +118,6 @@ export default function HomePage() {
                 <div className="stat-card">
                   <div className="stat-value">100%</div>
                   <div className="stat-label">Real Engagement</div>
-                </div>
-              </div>
-            </div>
-          </Reveal>
-
-          <Reveal>
-            <div className="hero-side">
-              <div className="side-card">
-                <div className="mono">Trending Dynamics</div>
-                <h2 className="display-title" style={{ fontSize: '2.2rem', maxWidth: '10ch' }}>
-                  What's gaining momentum.
-                </h2>
-                <p className="section-copy">
-                  Thoughts with higher likes, comments, and views dynamically rise to the top of the feed and trending charts.
-                </p>
-              </div>
-              <div className="side-card side-stack">
-                <div className="minicard">
-                  <div>
-                    <h3 className="minicard-title">🔥 Likes & Reactions</h3>
-                    <p className="minicard-copy">Direct engagement boosts rank & visibility across the community.</p>
-                  </div>
-                  <span className="pill">01</span>
-                </div>
-                <div className="minicard">
-                  <div>
-                    <h3 className="minicard-title">💬 Deep Discussions</h3>
-                    <p className="minicard-copy">Active comment sections keep thoughts alive & trending.</p>
-                  </div>
-                  <span className="pill">02</span>
-                </div>
-                <div className="minicard">
-                  <div>
-                    <h3 className="minicard-title">👁️ Views & Impressions</h3>
-                    <p className="minicard-copy">Real-time readership metrics track what people are returning to.</p>
-                  </div>
-                  <span className="pill">03</span>
                 </div>
               </div>
             </div>

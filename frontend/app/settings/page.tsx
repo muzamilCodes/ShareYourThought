@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SectionHeading } from '@/components/SectionHeading';
 import { api, saveStoredSession } from '@/lib/api';
 import { useSession } from '@/hooks/useSession';
+import { fileToCompressedDataUrl } from '@/lib/imageUtils';
 
 export default function SettingsPage() {
   const { session, ready, setSession } = useSession();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState({
     name: '',
     username: '',
@@ -16,6 +18,7 @@ export default function SettingsPage() {
     website: '',
     location: ''
   });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ email: '', token: '', password: '' });
   const [forgotEmail, setForgotEmail] = useState('');
   const [profileMessage, setProfileMessage] = useState('');
@@ -124,7 +127,73 @@ export default function SettingsPage() {
             <>
               <SectionHeading eyebrow="Profile" title="Edit your public profile." />
               <form className="form-grid" onSubmit={updateProfile}>
-                {(['name', 'username', 'bio', 'avatar', 'website', 'location'] as const).map((field) => (
+                {/* Profile Photo Uploader & Live Preview */}
+                <div className="field" style={{ background: 'var(--paper)', padding: '16px', borderRadius: '16px', border: '1px solid var(--line)' }}>
+                  <label style={{ fontWeight: 700, marginBottom: '10px', display: 'block' }}>Profile Photo (Avatar)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                    <img
+                      src={
+                        profile.avatar ||
+                        (profile.name
+                          ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name)}`
+                          : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+                      }
+                      alt="Avatar preview"
+                      className="avatar-lg"
+                      style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ember)' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingAvatar(true);
+                          try {
+                            const dataUrl = await fileToCompressedDataUrl(file, 400, 0.85);
+                            setProfile((prev) => ({ ...prev, avatar: dataUrl }));
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : 'Could not process image');
+                          } finally {
+                            setUploadingAvatar(false);
+                          }
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="button"
+                          style={{ fontSize: '0.85rem', padding: '6px 14px', minHeight: 'auto' }}
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingAvatar}
+                        >
+                          {uploadingAvatar ? 'Uploading…' : '📷 Upload Photo'}
+                        </button>
+                        {profile.avatar ? (
+                          <button
+                            type="button"
+                            className="button-ghost"
+                            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
+                            onClick={() => {
+                              setProfile((prev) => ({ ...prev, avatar: '' }));
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                          >
+                            Remove
+                          </button>
+                        ) : null}
+                      </div>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--muted)' }}>
+                        Select any JPG/PNG from your camera or phone gallery.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {(['name', 'username', 'bio', 'website', 'location'] as const).map((field) => (
                   <div className="field" key={field}>
                     <label htmlFor={field} style={{ textTransform: 'capitalize' }}>
                       {field}
@@ -154,7 +223,7 @@ export default function SettingsPage() {
                   </div>
                 ))}
                 <div className="form-actions">
-                  <button className="button" type="submit" disabled={loadingProfile}>
+                  <button className="button" type="submit" disabled={loadingProfile || uploadingAvatar}>
                     {loadingProfile ? 'Saving…' : 'Save Profile'}
                   </button>
                 </div>

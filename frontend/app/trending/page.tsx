@@ -34,6 +34,31 @@ export default function TrendingPage() {
         <p className="section-copy section-copy-lg">
           Calculated in real-time based on Likes, Comments, Saves, Shares, and Views. The most active discussions rise to the top.
         </p>
+
+        {/* Trending Dynamics Pillars */}
+        <div className="panel-grid" style={{ marginTop: '24px', textAlign: 'left' }}>
+          <div className="note-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div className="mono">01 · Likes & Reactions</div>
+              <span className="pill">5x Boost</span>
+            </div>
+            <p className="note-copy">Direct likes and interactions boost rank & visibility across the community.</p>
+          </div>
+          <div className="note-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div className="mono">02 · Deep Discussions</div>
+              <span className="pill">4x Boost</span>
+            </div>
+            <p className="note-copy">Active comment sections and debates keep thoughts alive & trending.</p>
+          </div>
+          <div className="note-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div className="mono">03 · Views & Impressions</div>
+              <span className="pill">Real Views</span>
+            </div>
+            <p className="note-copy">Real-time readership metrics track what people are actively returning to.</p>
+          </div>
+        </div>
       </section>
 
       <section className="section">
