@@ -491,17 +491,25 @@ export function ProfileCard({
   onToggleFollow: () => void;
   isSelf?: boolean;
 }) {
+  if (!profile) return null;
+
+  const profileName = profile.name || profile.username || 'Anonymous';
+  const profileUsername = profile.username || 'user';
   const avatarUrl =
-    profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name)}`;
+    profile.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profileName)}`;
+
+  const followersNum = typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0;
+  const followingNum = typeof profile.following === 'number' ? profile.following : profile.following?.length || 0;
+  const savedNum = typeof profile.savedThoughts === 'number' ? profile.savedThoughts : profile.savedThoughts?.length || 0;
 
   return (
     <aside className="profile-card">
       <div className="profile-top">
         <div className="brand-lockup">
-          <img className="avatar-lg" src={avatarUrl} alt={profile.name} />
+          <img className="avatar-lg" src={avatarUrl} alt={profileName} />
           <div>
-            <h2 className="profile-name">{profile.name}</h2>
-            <div className="profile-handle">@{profile.username}</div>
+            <h2 className="profile-name">{profileName}</h2>
+            <div className="profile-handle">@{profileUsername}</div>
           </div>
         </div>
         {!isSelf ? (
@@ -531,15 +539,15 @@ export function ProfileCard({
       ) : null}
       <div className="profile-stats">
         <div className="profile-stat">
-          <strong>{typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0}</strong>
+          <strong>{followersNum}</strong>
           <span>Followers</span>
         </div>
         <div className="profile-stat">
-          <strong>{typeof profile.following === 'number' ? profile.following : profile.following?.length || 0}</strong>
+          <strong>{followingNum}</strong>
           <span>Following</span>
         </div>
         <div className="profile-stat">
-          <strong>{typeof profile.savedThoughts === 'number' ? profile.savedThoughts : profile.savedThoughts?.length || 0}</strong>
+          <strong>{savedNum}</strong>
           <span>Saved</span>
         </div>
       </div>

@@ -10,7 +10,14 @@ import { useSession } from '../../../hooks/useSession';
 import type { Thought, User } from '../../../types';
 
 export default function ProfilePage() {
-  const params = useParams<{ username: string }>();
+  const params = useParams();
+  const rawUsername = params?.username;
+  const username = Array.isArray(rawUsername)
+    ? rawUsername[0]
+    : rawUsername
+    ? String(rawUsername).toLowerCase()
+    : '';
+
   const { session, ready } = useSession();
   const [profile, setProfile] = useState<User | null>(null);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
@@ -19,8 +26,6 @@ export default function ProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following'>('thoughts');
   const [loading, setLoading] = useState(true);
-
-  const username = params?.username ? String(params.username).toLowerCase() : '';
 
   const loadProfile = async () => {
     if (!username) return;
@@ -33,8 +38,8 @@ export default function ProfilePage() {
         api.getFollowing(username)
       ]);
 
-      if (profileRes.status === 'fulfilled') {
-        setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile.id });
+      if (profileRes.status === 'fulfilled' && profileRes.value?.profile) {
+        setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile._id || profileRes.value.profile.id });
         setThoughts(profileRes.value.thoughts || []);
         setIsFollowing(Boolean(profileRes.value.isFollowing));
       } else {
@@ -42,10 +47,10 @@ export default function ProfilePage() {
       }
 
       if (followersRes.status === 'fulfilled') {
-        setFollowersList(followersRes.value.followers || []);
+        setFollowersList(followersRes.value?.followers || []);
       }
       if (followingRes.status === 'fulfilled') {
-        setFollowingList(followingRes.value.following || []);
+        setFollowingList(followingRes.value?.following || []);
       }
     } catch {
       setProfile(null);
@@ -55,7 +60,7 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !username) return;
     loadProfile();
   }, [username, ready, session?.token]);
 
