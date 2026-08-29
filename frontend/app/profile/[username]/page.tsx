@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ProfileCard, ThoughtCard } from '../../../components/ThoughtCard';
-import { SectionHeading } from '../../../components/SectionHeading';
-import { api } from '../../../lib/api';
-import { useSession } from '../../../hooks/useSession';
-import type { Thought, User } from '../../../types';
+import { ProfileCard, ThoughtCard } from '@/components/ThoughtCard';
+import { SectionHeading } from '@/components/SectionHeading';
+import { api } from '@/lib/api';
+import { useSession } from '@/hooks/useSession';
+import type { Thought, User } from '@/types';
 
 export default function ProfilePage() {
   const params = useParams();

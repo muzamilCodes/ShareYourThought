@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThoughtCard } from '../../../components/ThoughtCard';
-import { CommentSection } from '../../../components/CreateThought';
-import { api } from '../../../lib/api';
-import { useSession } from '../../../hooks/useSession';
-import type { Thought } from '../../../types';
+import { ThoughtCard } from '@/components/ThoughtCard';
+import { CommentSection } from '@/components/CreateThought';
+import { api } from '@/lib/api';
+import { useSession } from '@/hooks/useSession';
+import type { Thought } from '@/types';
 
 export default function ThoughtPage() {
   const params = useParams<{ id: string }>();
