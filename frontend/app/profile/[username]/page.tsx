@@ -92,8 +92,8 @@ export default function UserProfilePage() {
       if (isPrivateLocked && next.following) {
         loadProfile();
       }
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not update follow status');
+    } catch {
+      // silently handle follow toggle
     }
   };
 

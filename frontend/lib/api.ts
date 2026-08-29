@@ -116,8 +116,16 @@ export const api = {
     apiFetch<{ message: string; previewResetUrl?: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify(payload) }),
   resetPassword: (payload: { email: string; token: string; password: string }) =>
     apiFetch<AuthSession>('/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
-  getThoughts: (params: Record<string, string | number | undefined> = {}) =>
-    apiFetch<{ thoughts: Thought[]; total: number }>('/thoughts?' + new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))),
+  getThoughts: (params: Record<string, string | number | undefined> = {}, token?: string) =>
+    apiFetch<{ thoughts: Thought[]; total: number }>(
+      '/thoughts?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, value]) => value !== undefined)
+            .map(([key, value]) => [key, String(value)])
+        ),
+      { token }
+    ),
   getThought: (id: string, token?: string) => apiFetch<{ thought: Thought }>(`/thoughts/${id}`, { token }),
   createThought: (payload: { content: string; imageUrl?: string; category: string; hashtags: string; visibility?: string }, token: string) =>
     apiFetch<{ thought: Thought }>('/thoughts', { method: 'POST', token, body: JSON.stringify(payload) }),

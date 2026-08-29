@@ -59,8 +59,7 @@ export function Navbar() {
       badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : null
     },
     { href: profileHref, label: 'Profile', icon: '👤', authRequired: true },
-    { href: '/settings', label: 'Settings', icon: '⚙️', authRequired: true },
-    { href: '/about', label: 'About', icon: '📖' }
+    { href: '/settings', label: 'Settings', icon: '⚙️', authRequired: true }
   ];
 
   return (

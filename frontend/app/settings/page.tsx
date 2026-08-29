@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '@/components/SectionHeading';
 import { api, saveStoredSession } from '@/lib/api';
 import { useSession } from '@/hooks/useSession';
 import { fileToCompressedDataUrl } from '@/lib/imageUtils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function SettingsPage() {
   const { session, ready, setSession } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance'>('profile');
+  
   const [profile, setProfile] = useState({
     name: '',
     username: '',
@@ -54,6 +56,7 @@ export default function SettingsPage() {
           token: resetToken || current.token,
           email: email || current.email
         }));
+        setActiveTab('security');
       }
     }
   }, []);
@@ -69,7 +72,7 @@ export default function SettingsPage() {
       const nextSession = { ...session, user: data.user };
       saveStoredSession(nextSession);
       setSession(nextSession);
-      setProfileMessage('Profile updated successfully!');
+      setProfileMessage('✅ Profile updated successfully!');
     } catch (e) {
       setProfileMessage(e instanceof Error ? e.message : 'Could not update profile');
     } finally {
@@ -107,7 +110,7 @@ export default function SettingsPage() {
       const sessionData = await api.resetPassword(passwordForm);
       saveStoredSession(sessionData);
       setSession(sessionData);
-      setPasswordMessage('Password successfully updated! You are now signed in.');
+      setPasswordMessage('✅ Password successfully updated! You are now signed in.');
     } catch (e) {
       setPasswordMessage(e instanceof Error ? e.message : 'Failed to reset password');
     } finally {
@@ -116,110 +119,180 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="page container">
-      <section className="page-frame">
-        <div className="page-frame-main">
-          <div className="mono eyebrow">Settings & Account</div>
-          <h1 className="display-title display-title-xl">Manage your profile & security.</h1>
-          <p className="section-copy section-copy-lg">
-            Update your public profile, customize your bio, and manage your password.
-          </p>
+    <div className="page container" style={{ maxWidth: '650px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 className="display-title" style={{ fontSize: '1.75rem', margin: '0 0 6px 0', color: 'var(--ink)' }}>
+          ⚙️ Settings
+        </h1>
+        <p className="section-copy" style={{ margin: 0, fontSize: '0.90rem' }}>
+          Manage your personal profile, security preferences, and appearance.
+        </p>
+      </div>
 
+      {/* Settings Tab Navigation */}
+      <div
+        className="feed-sort-tabs"
+        style={{ width: '100%', marginBottom: '24px', display: 'flex', justifyContent: 'center' }}
+      >
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeTab === 'profile' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+          style={{ flex: 1 }}
+        >
+          👤 Profile
+        </button>
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeTab === 'security' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('security')}
+          style={{ flex: 1 }}
+        >
+          🔐 Security
+        </button>
+        <button
+          type="button"
+          className={`feed-sort-tab ${activeTab === 'appearance' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('appearance')}
+          style={{ flex: 1 }}
+        >
+          🎨 Appearance
+        </button>
+      </div>
+
+      {/* TAB 1: PROFILE */}
+      {activeTab === 'profile' && (
+        <div>
           {ready && session ? (
-            <>
-              <SectionHeading eyebrow="Profile" title="Edit your public profile." />
-              <form className="form-grid" onSubmit={updateProfile}>
-                {/* Profile Photo Uploader & Live Preview */}
-                <div className="field" style={{ background: 'var(--paper)', padding: '16px', borderRadius: '16px', border: '1px solid var(--line)' }}>
-                  <label style={{ fontWeight: 700, marginBottom: '10px', display: 'block' }}>Profile Photo (Avatar)</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                    <img
-                      src={
-                        profile.avatar ||
-                        (profile.name
-                          ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name)}`
-                          : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
-                      }
-                      alt="Avatar preview"
-                      className="avatar-lg"
-                      style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ember)' }}
+            <form onSubmit={updateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Profile Photo Uploader & Live Preview */}
+              <div
+                style={{
+                  background: 'var(--paper)',
+                  padding: '20px',
+                  borderRadius: '20px',
+                  border: '1px solid var(--line)',
+                  boxShadow: 'var(--shadow)'
+                }}
+              >
+                <label style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '12px', display: 'block', color: 'var(--ink)' }}>
+                  Profile Photo (Avatar)
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap' }}>
+                  <img
+                    src={
+                      profile.avatar ||
+                      (profile.name
+                        ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name)}`
+                        : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+                    }
+                    alt="Avatar preview"
+                    style={{
+                      width: '74px',
+                      height: '74px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      border: '2.5px solid var(--ember)',
+                      boxShadow: '0 4px 12px rgba(200,109,52,0.18)'
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingAvatar(true);
+                        try {
+                          const dataUrl = await fileToCompressedDataUrl(file, 400, 0.85);
+                          setProfile((prev) => ({ ...prev, avatar: dataUrl }));
+                        } catch (err) {
+                          setProfileMessage(err instanceof Error ? err.message : 'Could not process image');
+                        } finally {
+                          setUploadingAvatar(false);
+                        }
+                      }}
                     />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setUploadingAvatar(true);
-                          try {
-                            const dataUrl = await fileToCompressedDataUrl(file, 400, 0.85);
-                            setProfile((prev) => ({ ...prev, avatar: dataUrl }));
-                          } catch (err) {
-                            alert(err instanceof Error ? err.message : 'Could not process image');
-                          } finally {
-                            setUploadingAvatar(false);
-                          }
-                        }}
-                      />
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="button"
+                        style={{ fontSize: '0.85rem', padding: '6px 14px', minHeight: 'auto' }}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        {uploadingAvatar ? 'Uploading…' : '📷 Change Photo'}
+                      </button>
+                      {profile.avatar ? (
                         <button
                           type="button"
-                          className="button"
-                          style={{ fontSize: '0.85rem', padding: '6px 14px', minHeight: 'auto' }}
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploadingAvatar}
+                          className="button-ghost"
+                          style={{ fontSize: '0.85rem', padding: '6px 12px' }}
+                          onClick={() => {
+                            setProfile((prev) => ({ ...prev, avatar: '' }));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
                         >
-                          {uploadingAvatar ? 'Uploading…' : '📷 Upload Photo'}
+                          Remove
                         </button>
-                        {profile.avatar ? (
-                          <button
-                            type="button"
-                            className="button-ghost"
-                            style={{ fontSize: '0.85rem', padding: '6px 12px' }}
-                            onClick={() => {
-                              setProfile((prev) => ({ ...prev, avatar: '' }));
-                              if (fileInputRef.current) fileInputRef.current.value = '';
-                            }}
-                          >
-                            Remove
-                          </button>
-                        ) : null}
-                      </div>
-                      <span style={{ fontSize: '0.76rem', color: 'var(--muted)' }}>
-                        Select any JPG/PNG from your camera or phone gallery.
-                      </span>
+                      ) : null}
                     </div>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                      Select JPG or PNG from camera or gallery.
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                {(['name', 'username', 'bio', 'website', 'location'] as const).map((field) => (
-                  <div className="field" key={field}>
-                    <label htmlFor={field} style={{ textTransform: 'capitalize' }}>
+              {/* Form Inputs */}
+              <div
+                style={{
+                  background: 'var(--paper)',
+                  padding: '24px',
+                  borderRadius: '20px',
+                  border: '1px solid var(--line)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  boxShadow: 'var(--shadow)'
+                }}
+              >
+                {(['name', 'username', 'bio', 'location', 'website'] as const).map((field) => (
+                  <div key={field}>
+                    <label
+                      htmlFor={field}
+                      style={{
+                        display: 'block',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        color: 'var(--muted)',
+                        marginBottom: '6px'
+                      }}
+                    >
                       {field}
                     </label>
                     {field === 'bio' ? (
                       <textarea
                         className="textarea"
                         id={field}
-                        name={field}
                         value={profile[field]}
-                        onChange={(event) =>
-                          setProfile((current) => ({ ...current, [field]: event.target.value }))
-                        }
+                        onChange={(e) => setProfile((prev) => ({ ...prev, [field]: e.target.value }))}
                         rows={3}
+                        placeholder="Tell the community about yourself…"
                       />
                     ) : (
                       <input
                         className="input"
                         id={field}
-                        name={field}
                         value={profile[field]}
-                        onChange={(event) =>
-                          setProfile((current) => ({ ...current, [field]: event.target.value }))
-                        }
+                        onChange={(e) => setProfile((prev) => ({ ...prev, [field]: e.target.value }))}
+                        placeholder={field === 'website' ? 'https://example.com' : field === 'location' ? 'e.g. Kashmir, India' : ''}
                       />
                     )}
                   </div>
@@ -228,7 +301,7 @@ export default function SettingsPage() {
                 {/* Account Privacy Toggle */}
                 <div
                   style={{
-                    background: 'var(--paper)',
+                    background: 'var(--dark-soft)',
                     padding: '16px 18px',
                     borderRadius: '16px',
                     border: '1px solid var(--line)',
@@ -236,10 +309,11 @@ export default function SettingsPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '16px',
-                    flexWrap: 'wrap'
+                    flexWrap: 'wrap',
+                    marginTop: '8px'
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: '220px' }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <strong style={{ fontSize: '0.96rem', color: 'var(--ink)' }}>
                         🔒 Private Account
@@ -250,7 +324,7 @@ export default function SettingsPage() {
                           fontWeight: 700,
                           padding: '2px 8px',
                           borderRadius: '12px',
-                          background: profile.isPrivate ? 'rgba(200, 109, 52, 0.15)' : 'var(--line)',
+                          background: profile.isPrivate ? 'rgba(200, 109, 52, 0.2)' : 'var(--line)',
                           color: profile.isPrivate ? 'var(--ember)' : 'var(--muted)'
                         }}
                       >
@@ -258,7 +332,7 @@ export default function SettingsPage() {
                       </span>
                     </div>
                     <span style={{ fontSize: '0.80rem', color: 'var(--muted)', display: 'block', marginTop: '4px' }}>
-                      When enabled, other users must follow you to see your published thoughts, photos, and followers.
+                      When enabled, only people who follow you can view your published thoughts and profile.
                     </span>
                   </div>
 
@@ -305,119 +379,158 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="form-actions">
+                <div style={{ marginTop: '8px' }}>
                   <button className="button" type="submit" disabled={loadingProfile || uploadingAvatar}>
-                    {loadingProfile ? 'Saving…' : 'Save Profile'}
+                    {loadingProfile ? 'Saving…' : 'Save Profile Changes'}
                   </button>
                 </div>
+
                 {profileMessage ? (
                   <p
-                    className="helper"
-                    style={{ color: profileMessage.includes('success') ? '#4a7c59' : '#c86d34' }}
+                    style={{
+                      margin: '6px 0 0 0',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      color: profileMessage.includes('success') || profileMessage.includes('✅') ? '#16a34a' : 'var(--ember)'
+                    }}
                   >
                     {profileMessage}
                   </p>
                 ) : null}
-              </form>
-            </>
-          ) : ready ? (
-            <div className="note-card" style={{ marginBottom: '32px' }}>
-              <div className="mono">Account Required</div>
-              <p className="note-copy">
-                Sign in to edit your profile information. <Link href="/login" style={{ textDecoration: 'underline' }}>Click here to login</Link>.
+              </div>
+            </form>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '48px 16px', background: 'var(--paper)', borderRadius: '20px', border: '1px solid var(--line)' }}>
+              <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>🔒</span>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
+                Account Required
+              </h3>
+              <p className="section-copy" style={{ margin: '0 auto 16px auto', fontSize: '0.90rem' }}>
+                Sign in to edit your profile details.
               </p>
+              <Link href="/login" className="button">
+                Log In
+              </Link>
             </div>
-          ) : null}
-
-          <SectionHeading eyebrow="Security" title="Request password reset." />
-          <form className="form-grid" onSubmit={requestReset}>
-            <div className="field">
-              <label htmlFor="reset-email">Your Account Email</label>
-              <input
-                className="input"
-                id="reset-email"
-                type="email"
-                value={forgotEmail}
-                onChange={(event) => setForgotEmail(event.target.value)}
-                placeholder="name@domain.com"
-                required
-              />
-            </div>
-            <div className="form-actions">
-              <button className="button-outline" type="submit">
-                Send Reset Link
-              </button>
-            </div>
-            {forgotMessage ? <p className="helper" style={{ wordBreak: 'break-all' }}>{forgotMessage}</p> : null}
-          </form>
-
-          <SectionHeading eyebrow="Reset" title="Complete password reset." />
-          <form className="form-grid" onSubmit={finishReset}>
-            <div className="field">
-              <label htmlFor="complete-email">Account Email</label>
-              <input
-                className="input"
-                id="complete-email"
-                type="email"
-                value={passwordForm.email}
-                onChange={(event) => setPasswordForm({ ...passwordForm, email: event.target.value })}
-                required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="reset-token">Reset Token</label>
-              <input
-                className="input"
-                id="reset-token"
-                value={passwordForm.token}
-                onChange={(event) => setPasswordForm({ ...passwordForm, token: event.target.value })}
-                placeholder="Paste the reset token here"
-                required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="new-password">New Password</label>
-              <input
-                className="input"
-                id="new-password"
-                type="password"
-                value={passwordForm.password}
-                onChange={(event) => setPasswordForm({ ...passwordForm, password: event.target.value })}
-                placeholder="At least 8 characters"
-                required
-              />
-            </div>
-            <div className="form-actions">
-              <button className="button-dark" type="submit" disabled={loadingReset}>
-                {loadingReset ? 'Updating…' : 'Reset Password'}
-              </button>
-            </div>
-            {passwordMessage ? (
-              <p
-                className="helper"
-                style={{ color: passwordMessage.includes('successfully') ? '#4a7c59' : '#c86d34' }}
-              >
-                {passwordMessage}
-              </p>
-            ) : null}
-          </form>
+          )}
         </div>
+      )}
 
-        <aside className="page-frame-aside">
-          <div className="note-card">
-            <div className="mono">Account Security</div>
-            <p className="note-copy">
-              Your password is encrypted with bcrypt before being stored. Tokens expire after 30 minutes.
+      {/* TAB 2: SECURITY */}
+      {activeTab === 'security' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Request Reset Box */}
+          <div
+            style={{
+              background: 'var(--paper)',
+              padding: '24px',
+              borderRadius: '20px',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow)'
+            }}
+          >
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
+              Request Password Reset
+            </h3>
+            <p className="section-copy" style={{ margin: '0 0 16px 0', fontSize: '0.88rem' }}>
+              We will generate a secure reset token for your account email.
             </p>
+            <form onSubmit={requestReset} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                className="input"
+                type="email"
+                placeholder="Enter your account email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+              <button className="button" type="submit" style={{ alignSelf: 'flex-start' }}>
+                Send Reset Request
+              </button>
+              {forgotMessage ? (
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem', color: 'var(--ember)' }}>
+                  {forgotMessage}
+                </p>
+              ) : null}
+            </form>
           </div>
-          <div className="note-card">
-            <div className="mono">Profile Sync</div>
-            <p className="note-copy">
-              Changes to your name, avatar, or bio appear across all your thoughts and comments.
+
+          {/* Set New Password Box */}
+          <div
+            style={{
+              background: 'var(--paper)',
+              padding: '24px',
+              borderRadius: '20px',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow)'
+            }}
+          >
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
+              Set New Password
+            </h3>
+            <p className="section-copy" style={{ margin: '0 0 16px 0', fontSize: '0.88rem' }}>
+              Enter your reset token and your new chosen password.
             </p>
+            <form onSubmit={finishReset} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input
+                className="input"
+                type="email"
+                placeholder="Email Address"
+                value={passwordForm.email}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, email: e.target.value }))}
+              />
+              <input
+                className="input"
+                type="text"
+                placeholder="Reset Token"
+                value={passwordForm.token}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, token: e.target.value }))}
+              />
+              <input
+                className="input"
+                type="password"
+                placeholder="New Secure Password"
+                value={passwordForm.password}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, password: e.target.value }))}
+              />
+              <button className="button" type="submit" disabled={loadingReset} style={{ alignSelf: 'flex-start' }}>
+                {loadingReset ? 'Updating…' : 'Update Password'}
+              </button>
+              {passwordMessage ? (
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem', color: passwordMessage.includes('success') || passwordMessage.includes('✅') ? '#16a34a' : 'var(--ember)' }}>
+                  {passwordMessage}
+                </p>
+              ) : null}
+            </form>
           </div>
-        </aside>
-      </section>
+        </div>
+      )}
+
+      {/* TAB 3: APPEARANCE */}
+      {activeTab === 'appearance' && (
+        <div
+          style={{
+            background: 'var(--paper)',
+            padding: '24px',
+            borderRadius: '20px',
+            border: '1px solid var(--line)',
+            boxShadow: 'var(--shadow)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px'
+          }}
+        >
+          <div>
+            <strong style={{ fontSize: '1rem', color: 'var(--ink)', display: 'block' }}>
+              Theme & Interface
+            </strong>
+            <span style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '2px', display: 'block' }}>
+              Toggle between Warm Editorial Light mode and Sleek Midnight Dark mode.
+            </span>
+          </div>
+          <ThemeToggle />
+        </div>
+      )}
     </div>
   );
 }

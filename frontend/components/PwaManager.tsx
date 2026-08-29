@@ -16,9 +16,16 @@ export function PwaManager() {
   const [offlineDismissed, setOfflineDismissed] = useState(false);
 
   useEffect(() => {
-    // 1. Register Service Worker (Active in production / live deployment)
+    // 1. Register Service Worker (Active ONLY in live production deployment)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      if (process.env.NODE_ENV === 'production' || !window.location.hostname.includes('localhost')) {
+      const isLocalDev =
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname.startsWith('192.168.') ||
+        window.location.hostname.startsWith('10.') ||
+        window.location.port === '3000';
+
+      if (!isLocalDev && process.env.NODE_ENV === 'production') {
         navigator.serviceWorker
           .register('/sw.js')
           .then((reg) => {

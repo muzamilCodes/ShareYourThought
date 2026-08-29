@@ -97,10 +97,27 @@ export const getThoughts = asyncHandler(async (req, res) => {
   }
 
   const sortMode = req.query.sort || 'newest';
+  const followingIds = (req.user?.following || []).map((id) => id.toString());
+
+  if (sortMode === 'following') {
+    if (!req.user || !followingIds.length) {
+      return res.json({ thoughts: [], page, limit, total: 0, totalPages: 0 });
+    }
+    const followingFilters = { ...filters, author: { $in: req.user.following } };
+    const thoughts = await populateThought(Thought.find(followingFilters).sort({ createdAt: -1 }).skip(skip).limit(limit));
+    const total = await Thought.countDocuments(followingFilters);
+    return res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
+  }
 
   if (sortMode === 'trending') {
     const allMatching = await populateThought(Thought.find(filters).limit(200));
-    const ranked = allMatching.sort((a, b) => thoughtScore(b) - thoughtScore(a));
+    const ranked = allMatching.sort((a, b) => {
+      const aIsFollowed = a.author && followingIds.includes(a.author._id ? a.author._id.toString() : a.author.toString());
+      const bIsFollowed = b.author && followingIds.includes(b.author._id ? b.author._id.toString() : b.author.toString());
+      const aBonus = aIsFollowed ? 400 : 0;
+      const bBonus = bIsFollowed ? 400 : 0;
+      return (thoughtScore(b) + bBonus) - (thoughtScore(a) + aBonus);
+    });
     const paginated = ranked.slice(skip, skip + limit);
     const total = allMatching.length;
     return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
@@ -118,10 +135,18 @@ export const getThoughts = asyncHandler(async (req, res) => {
     return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
   }
 
-  const thoughts = await populateThought(Thought.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit));
-  const total = await Thought.countDocuments(filters);
+  // Newest with Followed Priority
+  const allMatching = await populateThought(Thought.find(filters).limit(200));
+  const ranked = allMatching.sort((a, b) => {
+    const aIsFollowed = a.author && followingIds.includes(a.author._id ? a.author._id.toString() : a.author.toString()) ? 1 : 0;
+    const bIsFollowed = b.author && followingIds.includes(b.author._id ? b.author._id.toString() : b.author.toString()) ? 1 : 0;
+    if (aIsFollowed !== bIsFollowed) return bIsFollowed - aIsFollowed;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  const paginated = ranked.slice(skip, skip + limit);
+  const total = allMatching.length;
 
-  res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
+  res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
 });
 
 export const getThought = asyncHandler(async (req, res) => {

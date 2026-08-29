@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
-import type { Thought, User } from '../types';
+import { ConfirmModal } from './ConfirmModal';
+import type { Comment, Thought, User } from '../types';
 
 // Global session memory to prevent spamming duplicate views for the same thought
 const sessionViewedThoughts = new Set<string>();
@@ -233,16 +234,23 @@ export function ThoughtCard({
     }
   };
 
-  const handleDelete = async () => {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDelete = () => {
     setMenuOpen(false);
-    if (!token || !confirm('Are you sure you want to delete this thought?')) return;
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteThought = async () => {
+    if (!token) return;
     setDeleting(true);
     try {
       await api.deleteThought(currentThought._id, token);
+      setShowDeleteModal(false);
       onDeleted?.(currentThought._id);
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Could not delete thought');
+    } catch {
       setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -282,6 +290,24 @@ export function ThoughtCard({
   const [commentsCount, setCommentsCount] = useState(thought.commentsCount || 0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [lastTap, setLastTap] = useState<number>(0);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsList, setCommentsList] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  const toggleComments = async () => {
+    if (!showComments && !commentsList.length) {
+      setLoadingComments(true);
+      try {
+        const data = await api.getComments(currentThought._id);
+        setCommentsList(data.comments || []);
+      } catch {
+        // ignore
+      } finally {
+        setLoadingComments(false);
+      }
+    }
+    setShowComments((prev) => !prev);
+  };
 
   const handleDoubleTap = () => {
     const now = Date.now();
@@ -307,9 +333,13 @@ export function ThoughtCard({
 
     setSubmittingComment(true);
     try {
-      await api.createComment(currentThought._id, { content: quickComment.trim() }, token);
+      const res = await api.createComment(currentThought._id, { content: quickComment.trim() }, token);
+      if (res.comment) {
+        setCommentsList((prev) => [...prev, res.comment]);
+      }
       setCommentsCount((c) => c + 1);
       setQuickComment('');
+      setShowComments(true);
     } catch {
       // ignore comment error
     } finally {
@@ -579,10 +609,15 @@ export function ThoughtCard({
                 <span className="insta-action-icon">{liked ? '❤️' : '🤍'}</span>
                 <span>{likes}</span>
               </button>
-              <Link className="thought-action insta-action-btn" href={`/thought/${currentThought._id}`} title="Comments">
+              <button
+                type="button"
+                className={`thought-action insta-action-btn ${showComments ? 'is-active' : ''}`}
+                onClick={toggleComments}
+                title="View & Post Comments"
+              >
                 <span className="insta-action-icon">💬</span>
                 <span>{commentsCount}</span>
-              </Link>
+              </button>
               <button className="thought-action insta-action-btn" onClick={handleShare} title="Share thought">
                 <span className="insta-action-icon">↗️</span>
                 <span>{copied ? 'Copied' : shares}</span>
@@ -604,17 +639,79 @@ export function ThoughtCard({
             </div>
           </div>
 
-          {/* Instagram Likes Counter & Comments Link */}
+          {/* Likes Counter & Inline Comments Toggle */}
           <div style={{ padding: '6px 0 2px 0', fontSize: '0.84rem' }}>
             <strong style={{ color: 'var(--ink)' }}>{likes} {likes === 1 ? 'like' : 'likes'}</strong>
             {commentsCount > 0 ? (
               <div style={{ marginTop: '3px' }}>
-                <Link href={`/thought/${currentThought._id}`} style={{ color: 'var(--muted)', fontSize: '0.8rem', textDecoration: 'none' }}>
-                  View all {commentsCount} comments
-                </Link>
+                <button
+                  type="button"
+                  onClick={toggleComments}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    color: 'var(--muted)',
+                    fontSize: '0.80rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {showComments ? 'Hide comments' : `View all ${commentsCount} comments`}
+                </button>
               </div>
             ) : null}
           </div>
+
+          {/* Expandable Inline Comments List */}
+          {showComments ? (
+            <div
+              style={{
+                marginTop: '10px',
+                padding: '12px 14px',
+                background: 'var(--dark-soft)',
+                borderRadius: '14px',
+                border: '1px solid var(--line)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '260px',
+                overflowY: 'auto'
+              }}
+            >
+              {loadingComments ? (
+                <div style={{ fontSize: '0.82rem', color: 'var(--muted)', textAlign: 'center', padding: '10px 0' }}>
+                  Loading comments…
+                </div>
+              ) : commentsList.length ? (
+                commentsList.map((comm) => {
+                  const cAuthorName = comm.author?.name || 'User';
+                  const cAvatar =
+                    comm.author?.avatar ||
+                    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cAuthorName)}`;
+                  return (
+                    <div key={comm._id} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.85rem' }}>
+                      <img
+                        src={cAvatar}
+                        alt={cAuthorName}
+                        style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, marginTop: '2px' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--ink)', marginRight: '6px' }}>
+                          {comm.author?.username ? `@${comm.author.username}` : cAuthorName}
+                        </span>
+                        <span style={{ color: 'var(--ink)', wordBreak: 'break-word' }}>{comm.content}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ fontSize: '0.82rem', color: 'var(--muted)', textAlign: 'center', padding: '6px 0' }}>
+                  No comments yet. Be the first to comment!
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* Instagram Quick Comment Input with Current User Avatar */}
           <form className="insta-quick-comment-form" onSubmit={handleQuickCommentSubmit}>
@@ -649,6 +746,19 @@ export function ThoughtCard({
           </form>
         </>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Thought?"
+        message="This thought will be permanently removed from your stream and public feeds."
+        confirmText="Delete"
+        cancelText="Keep"
+        type="danger"
+        loading={deleting}
+        onConfirm={confirmDeleteThought}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </article>
   );
 }

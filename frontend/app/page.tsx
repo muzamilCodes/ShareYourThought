@@ -7,19 +7,21 @@ import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
 import { FeedSkeleton } from '../components/SkeletonLoader';
 import { StoryTray } from '../components/StoryTray';
+import { useSession } from '../hooks/useSession';
 import { api } from '../lib/api';
 import type { Category, Thought } from '../types';
 
 export default function HomePage() {
+  const { session } = useSession();
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [activeSort, setActiveSort] = useState<'trending' | 'newest' | 'popular'>('trending');
+  const [activeSort, setActiveSort] = useState<'following' | 'trending' | 'newest' | 'popular'>('trending');
 
-  const fetchFeed = (sortMode: 'trending' | 'newest' | 'popular') => {
+  const fetchFeed = (sortMode: 'following' | 'trending' | 'newest' | 'popular') => {
     setLoading(true);
-    api.getThoughts({ sort: sortMode, limit: 12 })
+    api.getThoughts({ sort: sortMode, limit: 16 }, session?.token)
       .then((feed) => {
         setThoughts(feed.thoughts || []);
         setTotalCount(feed.total || 0);
@@ -30,7 +32,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchFeed(activeSort);
-  }, [activeSort]);
+  }, [activeSort, session?.token]);
 
   useEffect(() => {
     api.listCategories()
@@ -86,11 +88,20 @@ export default function HomePage() {
         <div className="container" style={{ maxWidth: '650px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
             <h2 className="display-title" style={{ fontSize: '1.4rem', margin: 0 }}>
-              {activeSort === 'trending' ? '🔥 Trending Feed' : activeSort === 'popular' ? '🏆 Most Liked' : '⚡ Latest Feed'}
+              {activeSort === 'following' ? '👥 Following Feed' : activeSort === 'trending' ? '🔥 Trending Feed' : activeSort === 'popular' ? '🏆 Most Liked' : '⚡ Latest Feed'}
             </h2>
 
             {/* Feed Sort Tabs */}
             <div className="feed-sort-tabs">
+              {session?.token ? (
+                <button
+                  type="button"
+                  className={`feed-sort-tab ${activeSort === 'following' ? 'is-active' : ''}`}
+                  onClick={() => setActiveSort('following')}
+                >
+                  👥 Following
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={`feed-sort-tab ${activeSort === 'trending' ? 'is-active' : ''}`}

@@ -8,8 +8,6 @@ export function Footer() {
       <div className="footer-compact-inner">
         {/* Inline Quick Links */}
         <nav className="footer-compact-links" aria-label="Footer Navigation">
-          <Link href="/about">About</Link>
-          <span className="footer-dot">·</span>
           <Link href="/trending">Trending</Link>
           <span className="footer-dot">·</span>
           <Link href="/explore">Topics</Link>
