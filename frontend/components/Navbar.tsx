@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
+import { ThemeToggle } from './ThemeToggle';
 
 const links = [
   { href: '/', label: 'Home' },
@@ -28,43 +29,43 @@ export function Navbar() {
     } finally {
       logout();
       setMobileMenuOpen(false);
-      window.location.href = '/';
     }
   };
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
-    if (query.trim()) {
-      setMobileMenuOpen(false);
-      window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
-    }
+    if (!query.trim()) return;
+    window.location.href = `/search?q=${encodeURIComponent(query.trim())}`;
+    setMobileMenuOpen(false);
   };
 
   return (
     <header className="navbar">
       <div className="navbar-inner">
-        <Link href="/" className="brand-lockup" onClick={() => setMobileMenuOpen(false)}>
+        <Link className="brand" href="/" onClick={() => setMobileMenuOpen(false)}>
           <span className="brand-mark" />
-          <span className="brand-name">ThoughtShare</span>
+          <span>ThoughtShare</span>
         </Link>
 
         {/* Desktop Nav Links */}
-        <nav className="nav-links desktop-only" aria-label="Primary">
+        <nav className="nav-links desktop-only" aria-label="Primary Navigation">
           {links.map((link) => (
-            <Link key={link.href} href={link.href}>
+            <Link key={link.href} href={link.href} className="nav-link">
               {link.label}
             </Link>
           ))}
         </nav>
 
-        {/* Desktop Nav Utility */}
-        <div className="nav-utility desktop-only">
+        {/* Desktop Controls (Search + Auth + Theme) */}
+        <div className="nav-actions desktop-only">
+          <ThemeToggle compact />
+
           <form className="nav-search" onSubmit={handleSearch}>
             <span className="mono" style={{ fontSize: '0.75rem' }}>Search</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Thoughts, authors, tags…"
+              placeholder="Search thoughts, users…"
               aria-label="Search thoughts or users"
             />
           </form>
@@ -95,7 +96,8 @@ export function Navbar() {
         </div>
 
         {/* Mobile Header Controls (Right side of top bar) */}
-        <div className="mobile-header-actions mobile-only">
+        <div className="mobile-header-actions mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ThemeToggle compact />
           {ready && session ? (
             <>
               <Link href="/notifications" className="mobile-icon-btn" title="Notifications" onClick={() => setMobileMenuOpen(false)}>

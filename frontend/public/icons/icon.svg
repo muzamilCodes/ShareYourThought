@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141411"/>
+      <stop offset="100%" stop-color="#24241e"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="45%" stop-color="#d95b28"/>
+      <stop offset="100%" stop-color="#9a3412"/>
+    </linearGradient>
+    <linearGradient id="innerGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#d95b28" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+
+  <!-- Center Thought / Flame Glyph -->
+  <g filter="url(#shadow)" transform="translate(106, 86)">
+    <!-- Outer Ember Bubble/Flame -->
+    <path d="M150 0 C220 0 280 60 280 140 C280 210 230 265 160 278 C150 280 140 280 130 278 C60 265 10 210 10 140 C10 60 70 0 150 0 Z" fill="url(#flameGrad)"/>
+    <!-- Speech bubble pointer -->
+    <path d="M80 250 L30 310 C25 316 15 314 15 306 L22 245 Z" fill="url(#flameGrad)"/>
+    <!-- Inner Radiant Thought Spark -->
+    <circle cx="145" cy="135" r="54" fill="url(#innerGlow)" opacity="0.95"/>
+    <circle cx="170" cy="115" r="18" fill="#ffffff" opacity="0.75"/>
+  </g>
+</svg>

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { SectionHeading } from '../components/SectionHeading';
 import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
+import { FeedSkeleton } from '../components/SkeletonLoader';
 import { api } from '../lib/api';
 import type { Category, Thought } from '../types';
 
@@ -47,6 +48,33 @@ export default function HomePage() {
 
   return (
     <div className="page">
+      {/* Mobile Quick Create Banner */}
+      <div className="container mobile-only" style={{ marginBottom: '16px', marginTop: '8px' }}>
+        <Link
+          href="/create"
+          className="note-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '16px',
+            textDecoration: 'none',
+            color: 'inherit',
+            background: 'var(--paper)',
+            boxShadow: 'var(--shadow)'
+          }}
+        >
+          <span style={{ fontSize: '1.4rem' }}>✍️</span>
+          <div style={{ flex: 1, fontSize: '0.9rem', color: 'var(--muted)' }}>
+            What's on your mind? Share a thought…
+          </div>
+          <span className="button" style={{ fontSize: '0.78rem', padding: '6px 12px', minHeight: 'auto' }}>
+            Post
+          </span>
+        </Link>
+      </div>
+
       <section className="hero">
         <div className="container hero-grid">
           <Reveal>
@@ -165,7 +193,9 @@ export default function HomePage() {
             </div>
           </div>
 
-          {thoughts.length ? (
+          {loading ? (
+            <FeedSkeleton count={4} />
+          ) : thoughts.length ? (
             <div className="thought-grid">
               {thoughts.map((thought, idx) => (
                 <Reveal key={thought._id}>
@@ -180,7 +210,7 @@ export default function HomePage() {
                 </Reveal>
               ))}
             </div>
-          ) : !loading ? (
+          ) : (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
               <p className="empty-state">No thoughts found in this view yet.</p>
               <div style={{ marginTop: '16px' }}>
@@ -189,7 +219,7 @@ export default function HomePage() {
                 </Link>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       </section>
 
