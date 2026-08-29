@@ -49,6 +49,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip development hot-reload and local development caching
+  if (
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
+    url.searchParams.has('v') ||
+    url.pathname.includes('/_next/webpack-hmr')
+  ) {
+    return;
+  }
+
   // Skip private/auth API routes from caching
   if (
     url.pathname.includes('/auth/') ||

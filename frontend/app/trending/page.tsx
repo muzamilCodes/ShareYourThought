@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '../../components/SectionHeading';
-import { ThoughtCard } from '../../components/ThoughtCard';
-import { api } from '../../lib/api';
-import type { Thought } from '../../types';
+import { SectionHeading } from '@/components/SectionHeading';
+import { ThoughtCard } from '@/components/ThoughtCard';
+import { api } from '@/lib/api';
+import type { Thought } from '@/types';
 
 export default function TrendingPage() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);

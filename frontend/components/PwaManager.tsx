@@ -16,16 +16,25 @@ export function PwaManager() {
   const [offlineDismissed, setOfflineDismissed] = useState(false);
 
   useEffect(() => {
-    // 1. Register Service Worker
+    // 1. Register Service Worker (Active in production / live deployment)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((reg) => {
-          console.log('[PWA] Service Worker registered with scope:', reg.scope);
-        })
-        .catch((err) => {
-          console.warn('[PWA] Service Worker registration failed:', err);
+      if (process.env.NODE_ENV === 'production' || !window.location.hostname.includes('localhost')) {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((reg) => {
+            console.log('[PWA] Service Worker registered with scope:', reg.scope);
+          })
+          .catch((err) => {
+            console.warn('[PWA] Service Worker registration:', err);
+          });
+      } else {
+        // In local development, unregister any stale service workers to prevent 404 chunk cache collisions
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+          }
         });
+      }
     }
 
     // 2. Handle Android / Desktop Install Prompt

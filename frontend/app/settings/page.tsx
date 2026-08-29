@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '../../components/SectionHeading';
-import { api, saveStoredSession } from '../../lib/api';
-import { useSession } from '../../hooks/useSession';
+import { SectionHeading } from '@/components/SectionHeading';
+import { api, saveStoredSession } from '@/lib/api';
+import { useSession } from '@/hooks/useSession';
 
 export default function SettingsPage() {
   const { session, ready, setSession } = useSession();

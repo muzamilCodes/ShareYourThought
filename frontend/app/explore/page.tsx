@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '../../components/SectionHeading';
-import { ThoughtCard } from '../../components/ThoughtCard';
-import { api } from '../../lib/api';
-import type { Category, Thought } from '../../types';
+import { SectionHeading } from '@/components/SectionHeading';
+import { ThoughtCard } from '@/components/ThoughtCard';
+import { api } from '@/lib/api';
+import type { Category, Thought } from '@/types';
 
 export default function ExplorePage() {
   const [thoughts, setThoughts] = useState<Thought[]>([]);

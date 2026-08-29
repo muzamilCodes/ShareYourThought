@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '../../components/SectionHeading';
-import { ThoughtCard } from '../../components/ThoughtCard';
-import { api } from '../../lib/api';
-import type { Thought, User } from '../../types';
+import { SectionHeading } from '@/components/SectionHeading';
+import { ThoughtCard } from '@/components/ThoughtCard';
+import { api } from '@/lib/api';
+import type { Thought, User } from '@/types';
 
 export default function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [query, setQuery] = useState(initialQuery);

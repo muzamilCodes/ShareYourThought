@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CreateThought } from '../../components/CreateThought';
-import { SectionHeading } from '../../components/SectionHeading';
-import { api } from '../../lib/api';
-import type { Category } from '../../types';
+import { CreateThought } from '@/components/CreateThought';
+import { SectionHeading } from '@/components/SectionHeading';
+import { api } from '@/lib/api';
+import type { Category } from '@/types';
 
 export default function CreatePage() {
   const [categories, setCategories] = useState<Category[]>([]);

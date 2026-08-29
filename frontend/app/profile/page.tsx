@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from '../../hooks/useSession';
+import { useSession } from '@/hooks/useSession';
 
 export default function ProfileRedirectPage() {
   const router = useRouter();

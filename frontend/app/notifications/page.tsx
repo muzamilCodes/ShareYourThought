@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '../../components/SectionHeading';
-import { api } from '../../lib/api';
-import { useSession } from '../../hooks/useSession';
-import type { Notification } from '../../types';
+import { SectionHeading } from '@/components/SectionHeading';
+import { api } from '@/lib/api';
+import { useSession } from '@/hooks/useSession';
+import type { Notification } from '@/types';
 
 export default function NotificationsPage() {
   const { session, ready } = useSession();
