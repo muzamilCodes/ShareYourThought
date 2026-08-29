@@ -69,3 +69,26 @@ export type AuthSession = {
   token: string;
   user: User;
 };
+
+export type Message = {
+  _id: string;
+  sender: User;
+  recipient: User;
+  content: string;
+  read: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type Conversation = {
+  partner: User;
+  lastMessage: {
+    _id: string;
+    content: string;
+    createdAt: string;
+    isSender: boolean;
+    read: boolean;
+  };
+  unreadCount: number;
+};
+

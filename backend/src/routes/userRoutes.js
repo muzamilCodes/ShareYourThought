@@ -15,8 +15,8 @@ router.get('/me', protect, getMe);
 router.patch('/me', protect, updateMe);
 router.get('/search', searchUsers);
 router.get('/saved/thoughts', protect, getSavedThoughts);
-router.get('/:username/followers', getFollowers);
-router.get('/:username/following', getFollowing);
+router.get('/:username/followers', optionalAuth, getFollowers);
+router.get('/:username/following', optionalAuth, getFollowing);
 router.get('/:username', optionalAuth, getProfile);
 
 export default router;

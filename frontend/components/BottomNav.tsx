@@ -56,6 +56,12 @@ export function BottomNav() {
       isActive: pathname === '/create'
     },
     {
+      href: '/messages',
+      label: 'Chat',
+      icon: '💬',
+      isActive: pathname.startsWith('/messages')
+    },
+    {
       href: '/notifications',
       label: 'Alerts',
       icon: '🔔',

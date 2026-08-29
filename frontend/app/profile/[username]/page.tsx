@@ -33,8 +33,8 @@ export default function UserProfilePage() {
     try {
       const [profileRes, followersRes, followingRes, savedRes] = await Promise.allSettled([
         api.getProfile(username, session?.token),
-        api.getFollowers(username),
-        api.getFollowing(username),
+        api.getFollowers(username, session?.token),
+        api.getFollowing(username, session?.token),
         session?.token ? api.savedThoughts(session.token) : Promise.reject()
       ]);
 
@@ -144,6 +144,8 @@ export default function UserProfilePage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           thoughtsCount={isPrivateLocked ? 0 : thoughts.length}
+          followersCount={isPrivateLocked ? 0 : followersCount}
+          followingCount={isPrivateLocked ? 0 : followingCount}
           savedCount={isSelf ? totalSavedCount : 0}
         />
         <div className="profile-summary">

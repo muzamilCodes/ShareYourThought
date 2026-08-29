@@ -16,32 +16,25 @@ export function PwaManager() {
   const [offlineDismissed, setOfflineDismissed] = useState(false);
 
   useEffect(() => {
-    // 1. Register Service Worker (Active ONLY in live production deployment)
+    // 1. Register Service Worker for PWA
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const isLocalDev =
-        window.location.hostname === 'localhost' ||
-        window.location.hostname === '127.0.0.1' ||
-        window.location.hostname.startsWith('192.168.') ||
-        window.location.hostname.startsWith('10.') ||
-        window.location.port === '3000';
-
-      if (!isLocalDev && process.env.NODE_ENV === 'production') {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((reg) => {
-            console.log('[PWA] Service Worker registered with scope:', reg.scope);
-          })
-          .catch((err) => {
-            console.warn('[PWA] Service Worker registration:', err);
-          });
-      } else {
-        // In local development, unregister any stale service workers to prevent 404 chunk cache collisions
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (const reg of registrations) {
-            reg.unregister();
-          }
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => {
+          console.log('[PWA] Service Worker registered with scope:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('[PWA] Service Worker registration error:', err);
         });
-      }
+    }
+
+    // Check standalone mode
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone;
+
+    if (isStandalone) {
+      return;
     }
 
     // 2. Handle Android / Desktop Install Prompt
@@ -49,20 +42,31 @@ export function PwaManager() {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
-      // Check if user dismissed recently
       const dismissed = localStorage.getItem('thoughtshare_pwa_dismissed');
       if (!dismissed) {
-        setTimeout(() => setShowInstallBanner(true), 3000);
+        setShowInstallBanner(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    // Fallback: Show install prompt if not dismissed and not in standalone
+    const timer = setTimeout(() => {
+      const dismissed = localStorage.getItem('thoughtshare_pwa_dismissed');
+      if (!dismissed && !isStandalone) {
+        setShowInstallBanner(true);
+      }
+    }, 2500);
+
+    const handleAppInstalled = () => {
+      setShowInstallBanner(false);
+      localStorage.setItem('thoughtshare_pwa_dismissed', 'true');
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
     // 3. Detect iOS Safari standalone mode
     const isIos =
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream: unknown }).MSStream;
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
       (navigator as unknown as { standalone?: boolean }).standalone;
 
     if (isIos && !isStandalone) {
@@ -100,14 +104,20 @@ export function PwaManager() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    setShowInstallBanner(false);
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      console.log('[PWA] User accepted the installation');
+    if (deferredPrompt) {
+      setShowInstallBanner(false);
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        console.log('[PWA] User accepted the installation');
+        localStorage.setItem('thoughtshare_pwa_dismissed', 'true');
+      }
+      setDeferredPrompt(null);
+    } else {
+      // Fallback instruction for browsers without beforeinstallprompt
+      alert('To install ThoughtShare:\n• On Chrome/Edge: Click the (⊕ Install) button in your browser address bar.\n• On Mobile: Tap browser menu (⋮) and select "Install app" or "Add to Home screen".');
+      setShowInstallBanner(false);
     }
-    setDeferredPrompt(null);
   };
 
   const handleDismissBanner = () => {
@@ -183,54 +193,62 @@ export function PwaManager() {
       )}
 
       {/* Android & Desktop Install Card Prompt */}
-      {showInstallBanner && deferredPrompt && (
+      {showInstallBanner && (
         <div
           className="pwa-install-card"
           style={{
             position: 'fixed',
             bottom: '80px',
             right: '20px',
-            maxWidth: '360px',
+            maxWidth: '370px',
             width: 'calc(100vw - 40px)',
             background: 'var(--paper)',
-            border: '1px solid var(--line)',
-            borderRadius: '18px',
+            border: '1.5px solid var(--ember)',
+            borderRadius: '20px',
             padding: '16px 18px',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+            boxShadow: '0 16px 40px rgba(200, 109, 52, 0.20)',
             zIndex: 9990,
             display: 'flex',
             alignItems: 'center',
             gap: '14px',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            animation: 'fadeIn 0.3s ease'
           }}
         >
           <img
-            src="/icons/icon.svg"
-            alt="ThoughtShare"
-            style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0 }}
+            src="/favicon.png"
+            alt="ThoughtShare App"
+            style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
+              flexShrink: 0,
+              objectFit: 'cover',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.12)'
+            }}
           />
-          <div style={{ flex: 1 }}>
-            <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--ink)' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ display: 'block', fontSize: '0.94rem', color: 'var(--ink)' }}>
               Install ThoughtShare
             </strong>
-            <span style={{ fontSize: '0.78rem', color: 'var(--muted)', display: 'block' }}>
-              Add to your home screen for quick access & offline use.
+            <span style={{ fontSize: '0.78rem', color: 'var(--muted)', display: 'block', marginTop: '2px' }}>
+              Install as an app for fast access & offline reading.
             </span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
             <button
               type="button"
               className="button"
               onClick={handleInstallClick}
-              style={{ fontSize: '0.78rem', padding: '6px 12px', minHeight: 'auto', whiteSpace: 'nowrap' }}
+              style={{ fontSize: '0.80rem', padding: '6px 14px', minHeight: 'auto', whiteSpace: 'nowrap', borderRadius: '16px' }}
             >
-              Install
+              Install 📲
             </button>
             <button
               type="button"
               className="button-ghost"
               onClick={handleDismissBanner}
-              style={{ fontSize: '0.72rem', padding: '2px 8px' }}
+              style={{ fontSize: '0.74rem', padding: '2px 8px', color: 'var(--muted)' }}
             >
               Later
             </button>

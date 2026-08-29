@@ -47,11 +47,32 @@ export function Navbar() {
   const profileHref = session?.user?.username ? `/profile/${session.user.username}` : '/profile';
   const userAvatar = session?.user?.avatar || (session?.user?.name ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}` : '');
 
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+  useEffect(() => {
+    if (ready && session?.token) {
+      api.getUnreadMessagesCount(session.token)
+        .then((res) => {
+          if (typeof res?.unreadCount === 'number') {
+            setUnreadMessagesCount(res.unreadCount);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [ready, session?.token, pathname]);
+
   const navLinks = [
     { href: '/', label: 'Home', icon: '🏠' },
     { href: '/explore', label: 'Explore', icon: '🔍' },
     { href: '/trending', label: 'Trending', icon: '🔥' },
     { href: '/search', label: 'Search', icon: '🏷️' },
+    {
+      href: '/messages',
+      label: 'Messages',
+      icon: '💬',
+      authRequired: true,
+      badge: unreadMessagesCount > 0 ? (unreadMessagesCount > 9 ? '9+' : unreadMessagesCount) : null
+    },
     {
       href: '/notifications',
       label: 'Notifications',

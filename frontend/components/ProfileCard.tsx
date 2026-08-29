@@ -12,6 +12,8 @@ interface ProfileCardProps {
   activeTab?: 'thoughts' | 'followers' | 'following' | 'saved';
   onTabChange?: (tab: 'thoughts' | 'followers' | 'following' | 'saved') => void;
   thoughtsCount?: number;
+  followersCount?: number;
+  followingCount?: number;
   savedCount?: number;
 }
 
@@ -24,14 +26,27 @@ export function ProfileCard({
   activeTab = 'thoughts',
   onTabChange,
   thoughtsCount = 0,
+  followersCount,
+  followingCount,
   savedCount = 0
 }: ProfileCardProps) {
   const avatarUrl =
     profile.avatar ||
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
 
-  const followersNum = typeof profile.followers === 'number' ? profile.followers : (profile.followers?.length || 0);
-  const followingNum = typeof profile.following === 'number' ? profile.following : (profile.following?.length || 0);
+  const followersNum =
+    typeof followersCount === 'number'
+      ? followersCount
+      : typeof profile.followers === 'number'
+      ? profile.followers
+      : profile.followers?.length || 0;
+
+  const followingNum =
+    typeof followingCount === 'number'
+      ? followingCount
+      : typeof profile.following === 'number'
+      ? profile.following
+      : profile.following?.length || 0;
 
   return (
     <div
@@ -82,16 +97,28 @@ export function ProfileCard({
           >
             Edit Profile
           </Link>
-        ) : onToggleFollow ? (
-          <button
-            type="button"
-            onClick={onToggleFollow}
-            className={isFollowing || isRequested ? 'button-outline' : 'button'}
-            style={{ fontSize: '0.86rem', padding: '6px 18px', minHeight: 'auto' }}
-          >
-            {isFollowing ? 'Following' : isRequested ? 'Requested 🔒' : profile.isPrivate ? 'Follow 🔒' : 'Follow'}
-          </button>
-        ) : null}
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link
+              href={`/messages?user=${profile.username}`}
+              className="button-outline"
+              style={{ fontSize: '0.86rem', padding: '6px 14px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>💬</span> Message
+            </Link>
+
+            {onToggleFollow ? (
+              <button
+                type="button"
+                onClick={onToggleFollow}
+                className={isFollowing || isRequested ? 'button-outline' : 'button'}
+                style={{ fontSize: '0.86rem', padding: '6px 18px', minHeight: 'auto' }}
+              >
+                {isFollowing ? 'Following' : isRequested ? 'Requested 🔒' : profile.isPrivate ? 'Follow 🔒' : 'Follow'}
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Bio, Location, Website */}

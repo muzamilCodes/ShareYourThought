@@ -1,4 +1,4 @@
-import type { AuthSession, Category, Comment, Notification, Thought, User } from '../types';
+import type { AuthSession, Category, Comment, Conversation, Message, Notification, Thought, User } from '../types';
 
 function getBaseUrl(): string {
   let url = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api').trim();
@@ -150,8 +150,10 @@ export const api = {
       `/users/${username}`,
       { token }
     ),
-  getFollowers: (username: string) => apiFetch<{ followers: User[]; isPrivateLocked?: boolean }>(`/users/${username}/followers`),
-  getFollowing: (username: string) => apiFetch<{ following: User[]; isPrivateLocked?: boolean }>(`/users/${username}/following`),
+  getFollowers: (username: string, token?: string) =>
+    apiFetch<{ followers: User[]; isPrivateLocked?: boolean }>(`/users/${username}/followers`, { token }),
+  getFollowing: (username: string, token?: string) =>
+    apiFetch<{ following: User[]; isPrivateLocked?: boolean }>(`/users/${username}/following`, { token }),
   updateMe: (payload: Partial<{ name: string; username: string; bio: string; avatar: string; website: string; location: string; isPrivate: boolean }>, token: string) =>
     apiFetch<{ user: User }>('/users/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
   savedThoughts: (token: string) => apiFetch<{ thoughts: Thought[] }>('/users/saved/thoughts', { token }),
@@ -185,5 +187,17 @@ export const api = {
       totalViews: number;
     }>('/thoughts/stats/summary'),
   report: (payload: { targetType: 'thought' | 'comment' | 'user'; targetId: string; reason: string; details?: string }, token: string) =>
-    apiFetch<{ report: unknown }>('/reports', { method: 'POST', token, body: JSON.stringify(payload) })
+    apiFetch<{ report: unknown }>('/reports', { method: 'POST', token, body: JSON.stringify(payload) }),
+  getConversations: (token: string) =>
+    apiFetch<{ conversations: Conversation[] }>('/messages/conversations', { token }),
+  getMessages: (userId: string, token: string) =>
+    apiFetch<{ partner: User; messages: Message[] }>(`/messages/${userId}`, { token }),
+  sendMessage: (userId: string, content: string, token: string) =>
+    apiFetch<{ message: Message }>(`/messages/${userId}`, {
+      method: 'POST',
+      token,
+      body: JSON.stringify({ content })
+    }),
+  getUnreadMessagesCount: (token: string) =>
+    apiFetch<{ unreadCount: number }>('/messages/unread-count', { token })
 };

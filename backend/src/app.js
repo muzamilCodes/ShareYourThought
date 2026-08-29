@@ -14,6 +14,7 @@ import commentRoutes from './routes/commentRoutes.js';
 import likeRoutes from './routes/likeRoutes.js';
 import followRoutes from './routes/followRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import messageRoutes from './routes/messageRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 
@@ -95,6 +96,7 @@ const mountAppRoutes = (prefix = '') => {
   app.use(`${prefix}/likes`, likeRoutes);
   app.use(`${prefix}/follows`, followRoutes);
   app.use(`${prefix}/notifications`, notificationRoutes);
+  app.use(`${prefix}/messages`, messageRoutes);
   app.use(`${prefix}/categories`, categoryRoutes);
   app.use(`${prefix}/reports`, reportRoutes);
 };

@@ -16,8 +16,12 @@ export const metadata: Metadata = {
     title: 'ThoughtShare'
   },
   icons: {
-    icon: '/icons/icon.svg',
-    shortcut: '/icons/icon.svg',
+    icon: [
+      { url: '/favicon.png', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    shortcut: '/favicon.png',
     apple: '/icons/apple-touch-icon.png'
   }
 };
@@ -37,9 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
-        <link rel="shortcut icon" type="image/svg+xml" href="/icons/icon.svg" />
-        <link rel="apple-touch-icon" href="/icons/icon.svg" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="shortcut icon" type="image/png" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

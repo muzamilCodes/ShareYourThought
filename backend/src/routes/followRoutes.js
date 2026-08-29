@@ -7,13 +7,13 @@ import {
   getFollowing,
   toggleFollow
 } from '../controllers/userController.js';
-import { protect } from '../middleware/auth.js';
+import { optionalAuth, protect } from '../middleware/auth.js';
 
 const router = Router();
 router.get('/requests', protect, getFollowRequests);
 router.post('/requests/:requesterId/accept', protect, acceptFollowRequest);
 router.post('/requests/:requesterId/decline', protect, declineFollowRequest);
 router.post('/:userId', protect, toggleFollow);
-router.get('/:username/followers', getFollowers);
-router.get('/:username/following', getFollowing);
+router.get('/:username/followers', optionalAuth, getFollowers);
+router.get('/:username/following', optionalAuth, getFollowing);
 export default router;
