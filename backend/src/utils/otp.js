@@ -34,6 +34,88 @@ function getTransporter() {
   return cachedTransporter;
 }
 
+async function sendViaResend({ to, subject, html, text }) {
+  if (!env.resendApiKey) return false;
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.resendApiKey}`
+      },
+      body: JSON.stringify({
+        from: env.resendFrom || 'ThoughtShare <onboarding@resend.dev>',
+        to: [to],
+        subject,
+        html,
+        text
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data?.id) {
+      console.log(`[Resend API] Successfully delivered OTP email to ${to} (ID: ${data.id})`);
+      return true;
+    }
+    console.warn('[Resend API Warning]', data?.message || data);
+    return false;
+  } catch (err) {
+    console.warn('[Resend API Error]', err.message);
+    return false;
+  }
+}
+
+async function sendViaBrevo({ to, subject, html, text }) {
+  if (!env.brevoApiKey) return false;
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': env.brevoApiKey
+      },
+      body: JSON.stringify({
+        sender: {
+          name: 'ThoughtShare',
+          email: env.brevoSenderEmail || 'warmuzamil68@gmail.com'
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+        textContent: text
+      })
+    });
+    const data = await res.json();
+    if (res.ok && (data?.messageId || data?.id)) {
+      console.log(`[Brevo API] Successfully delivered OTP email to ${to}`);
+      return true;
+    }
+    console.warn('[Brevo API Warning]', data?.message || data);
+    return false;
+  } catch (err) {
+    console.warn('[Brevo API Error]', err.message);
+    return false;
+  }
+}
+
+async function sendViaSmtp({ to, subject, html, text }) {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+  try {
+    await transporter.sendMail({
+      from: env.otpSenderEmail || env.smtpFrom,
+      to,
+      subject,
+      text,
+      html
+    });
+    console.log(`[SMTP] Successfully delivered OTP email to ${to}`);
+    return true;
+  } catch (err) {
+    console.error(`[SMTP Error] Failed to send email to ${to}:`, err.message);
+    return false;
+  }
+}
+
 export const deliverOtp = async ({ contact, code, purpose }) => {
   const titles = {
     register: 'Verify your ThoughtShare Account',
@@ -86,23 +168,18 @@ export const deliverOtp = async ({ contact, code, purpose }) => {
 
   const textContent = `Your ThoughtShare verification code is: ${code}\n\nUse this code to ${action}. This code expires in ${ttlMinutes} minutes.\n\nIf you did not request this code, please ignore this message.`;
 
-  console.log(`[OTP] Sent ${code} to ${contact} for ${purpose}`);
+  console.log(`[OTP Generated] Code: ${code} | Target: ${contact} | Purpose: ${purpose}`);
 
-  const transporter = getTransporter();
-  if (transporter) {
-    try {
-      await transporter.sendMail({
-        from: env.otpSenderEmail || env.smtpFrom,
-        to: contact,
-        subject,
-        text: textContent,
-        html: htmlContent
-      });
-      console.log(`[Email Sent] OTP email successfully sent to ${contact}`);
-    } catch (err) {
-      console.error(`[Email Error] Failed to send email to ${contact}:`, err.message);
-      // Don't throw so dev / fallback mode still proceeds
-    }
-  }
+  // 1. Try Resend HTTPS REST API (Port 443 - 100% Reliable on Render/Cloud)
+  let delivered = await sendViaResend({ to: contact, subject, html: htmlContent, text: textContent });
+  if (delivered) return;
+
+  // 2. Try Brevo HTTPS REST API (Port 443)
+  delivered = await sendViaBrevo({ to: contact, subject, html: htmlContent, text: textContent });
+  if (delivered) return;
+
+  // 3. Try Nodemailer Gmail / SMTP
+  await sendViaSmtp({ to: contact, subject, html: htmlContent, text: textContent });
 };
+
 
