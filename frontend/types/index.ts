@@ -8,6 +8,7 @@ export type Thought = {
   saves: Array<string | User>;
   sharesCount: number;
   commentsCount: number;
+  viewsCount?: number;
   featured?: boolean;
   createdAt: string;
   updatedAt?: string;

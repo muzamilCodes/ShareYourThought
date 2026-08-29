@@ -11,6 +11,7 @@ const thoughtSchema = new mongoose.Schema(
     saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     sharesCount: { type: Number, default: 0 },
     commentsCount: { type: Number, default: 0 },
+    viewsCount: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
     visibility: { type: String, enum: ['public', 'followers'], default: 'public' }
   },

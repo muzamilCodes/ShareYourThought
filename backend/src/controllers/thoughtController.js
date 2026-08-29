@@ -26,8 +26,18 @@ function thoughtScore(thought) {
   const likesCount = thought.likes?.length || 0;
   const comments = thought.commentsCount || 0;
   const shares = thought.sharesCount || 0;
-  const featured = thought.featured ? 6 : 0;
-  return likesCount * 2.5 + comments * 3 + shares * 1.5 + featured + 8 / Math.sqrt(ageHours);
+  const views = thought.viewsCount || 0;
+  const saves = thought.saves?.length || 0;
+  const featured = thought.featured ? 15 : 0;
+
+  // Engagement points: Likes (5x), Comments (4x), Saves (4x), Shares (3x), Views (1x)
+  const rawEngagement = (likesCount * 5) + (comments * 4) + (saves * 4) + (shares * 3) + (views * 1) + featured;
+
+  // Time-decay gravity formula
+  const gravity = 1.3;
+  const timeDecayScore = (rawEngagement + 1) / Math.pow(ageHours + 2, gravity);
+
+  return timeDecayScore * 50 + rawEngagement * 10;
 }
 
 async function findOrCreateCategory(categoryInput) {
@@ -61,7 +71,8 @@ export const createThought = asyncHandler(async (req, res) => {
     imageUrl: imageUrl ? String(imageUrl).trim() : '',
     category: categoryDoc.slug,
     hashtags: parseHashtags(hashtags),
-    visibility: visibility === 'followers' ? 'followers' : 'public'
+    visibility: visibility === 'followers' ? 'followers' : 'public',
+    viewsCount: 0
   });
 
   categoryDoc.thoughtCount = (categoryDoc.thoughtCount || 0) + 1;
@@ -85,6 +96,28 @@ export const getThoughts = asyncHandler(async (req, res) => {
     ];
   }
 
+  const sortMode = req.query.sort || 'newest';
+
+  if (sortMode === 'trending') {
+    const allMatching = await populateThought(Thought.find(filters).limit(200));
+    const ranked = allMatching.sort((a, b) => thoughtScore(b) - thoughtScore(a));
+    const paginated = ranked.slice(skip, skip + limit);
+    const total = allMatching.length;
+    return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
+  }
+
+  if (sortMode === 'popular') {
+    const allMatching = await populateThought(Thought.find(filters).limit(200));
+    const ranked = allMatching.sort((a, b) => {
+      const bTotal = (b.likes?.length || 0) + (b.commentsCount || 0) + (b.viewsCount || 0);
+      const aTotal = (a.likes?.length || 0) + (a.commentsCount || 0) + (a.viewsCount || 0);
+      return bTotal - aTotal;
+    });
+    const paginated = ranked.slice(skip, skip + limit);
+    const total = allMatching.length;
+    return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
+  }
+
   const thoughts = await populateThought(Thought.find(filters).sort({ createdAt: -1 }).skip(skip).limit(limit));
   const total = await Thought.countDocuments(filters);
 
@@ -92,9 +125,20 @@ export const getThoughts = asyncHandler(async (req, res) => {
 });
 
 export const getThought = asyncHandler(async (req, res) => {
+  await Thought.findByIdAndUpdate(req.params.id, { $inc: { viewsCount: 1 } });
   const thought = await populateThought(Thought.findById(req.params.id));
   if (!thought) return res.status(404).json({ message: 'Thought not found' });
   res.json({ thought });
+});
+
+export const recordView = asyncHandler(async (req, res) => {
+  const thought = await Thought.findByIdAndUpdate(
+    req.params.id,
+    { $inc: { viewsCount: 1 } },
+    { new: true }
+  );
+  if (!thought) return res.status(404).json({ message: 'Thought not found' });
+  res.json({ views: thought.viewsCount });
 });
 
 export const updateThought = asyncHandler(async (req, res) => {
@@ -194,13 +238,22 @@ export const shareThought = asyncHandler(async (req, res) => {
 });
 
 export const getTrendingThoughts = asyncHandler(async (_req, res) => {
-  const thoughts = await populateThought(Thought.find({}).limit(80));
-  const ranked = thoughts.sort((a, b) => thoughtScore(b) - thoughtScore(a)).slice(0, 12);
+  const thoughts = await populateThought(Thought.find({}).limit(120));
+  const ranked = thoughts.sort((a, b) => thoughtScore(b) - thoughtScore(a)).slice(0, 16);
   res.json({ thoughts: ranked });
 });
 
 export const getExploreThoughts = asyncHandler(async (req, res) => {
   const { page, limit, skip } = paginate(req.query);
+  const sortMode = req.query.sort || 'trending';
+
+  if (sortMode === 'trending') {
+    const allMatching = await populateThought(Thought.find({}).limit(200));
+    const ranked = allMatching.sort((a, b) => thoughtScore(b) - thoughtScore(a));
+    const paginated = ranked.slice(skip, skip + limit);
+    return res.json({ thoughts: paginated, page, limit, total: allMatching.length, totalPages: Math.ceil(allMatching.length / limit) });
+  }
+
   const thoughts = await populateThought(Thought.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit));
   const total = await Thought.countDocuments();
   res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
@@ -226,3 +279,4 @@ export const getThoughtByCategory = asyncHandler(async (req, res) => {
   );
   res.json({ thoughts });
 });
+

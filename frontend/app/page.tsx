@@ -13,22 +13,31 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [activeSort, setActiveSort] = useState<'trending' | 'newest' | 'popular'>('trending');
+
+  const fetchFeed = (sortMode: 'trending' | 'newest' | 'popular') => {
+    setLoading(true);
+    api.getThoughts({ sort: sortMode, limit: 12 })
+      .then((feed) => {
+        setThoughts(feed.thoughts || []);
+        setTotalCount(feed.total || 0);
+      })
+      .catch(() => setThoughts([]))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    Promise.allSettled([
-      api.getThoughts({ limit: 6 }),
-      api.listCategories()
-    ])
-      .then(([feed, cats]) => {
-        if (feed.status === 'fulfilled') {
-          setThoughts(feed.value.thoughts || []);
-          setTotalCount(feed.value.total || 0);
-        }
-        if (cats.status === 'fulfilled' && cats.value.categories?.length) {
-          setCategories(cats.value.categories);
+    fetchFeed(activeSort);
+  }, [activeSort]);
+
+  useEffect(() => {
+    api.listCategories()
+      .then((cats) => {
+        if (cats.categories?.length) {
+          setCategories(cats.categories);
         }
       })
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   const handleDeleted = (deletedId: string) => {
@@ -58,8 +67,8 @@ export default function HomePage() {
                   <Link href="/create" className="button">
                     ✍️ Share a Thought
                   </Link>
-                  <Link href="/explore" className="button-outline">
-                    Explore Thoughts
+                  <Link href="/trending" className="button-outline">
+                    🔥 View Trending
                   </Link>
                 </div>
               </div>
@@ -74,7 +83,7 @@ export default function HomePage() {
                 </div>
                 <div className="stat-card">
                   <div className="stat-value">100%</div>
-                  <div className="stat-label">Real Data & Users</div>
+                  <div className="stat-label">Real Engagement</div>
                 </div>
               </div>
             </div>
@@ -83,33 +92,33 @@ export default function HomePage() {
           <Reveal>
             <div className="hero-side">
               <div className="side-card">
-                <div className="mono">Manifesto</div>
+                <div className="mono">Trending Dynamics</div>
                 <h2 className="display-title" style={{ fontSize: '2.2rem', maxWidth: '10ch' }}>
-                  Thoughts deserve better framing.
+                  What's gaining momentum.
                 </h2>
                 <p className="section-copy">
-                  Everyone has something worth saying. Share thoughts without unnecessary complexity. Discover different perspectives. Connect through ideas.
+                  Thoughts with higher likes, comments, and views dynamically rise to the top of the feed and trending charts.
                 </p>
               </div>
               <div className="side-card side-stack">
                 <div className="minicard">
                   <div>
-                    <h3 className="minicard-title">Share</h3>
-                    <p className="minicard-copy">Publish honest posts, reflections, and quick ideas.</p>
+                    <h3 className="minicard-title">🔥 Likes & Reactions</h3>
+                    <p className="minicard-copy">Direct engagement boosts rank & visibility across the community.</p>
                   </div>
                   <span className="pill">01</span>
                 </div>
                 <div className="minicard">
                   <div>
-                    <h3 className="minicard-title">Discover</h3>
-                    <p className="minicard-copy">Explore thoughts from people with different viewpoints.</p>
+                    <h3 className="minicard-title">💬 Deep Discussions</h3>
+                    <p className="minicard-copy">Active comment sections keep thoughts alive & trending.</p>
                   </div>
                   <span className="pill">02</span>
                 </div>
                 <div className="minicard">
                   <div>
-                    <h3 className="minicard-title">Connect</h3>
-                    <p className="minicard-copy">Like, comment, follow, save, and keep the conversation moving.</p>
+                    <h3 className="minicard-title">👁️ Views & Impressions</h3>
+                    <p className="minicard-copy">Real-time readership metrics track what people are returning to.</p>
                   </div>
                   <span className="pill">03</span>
                 </div>
@@ -119,60 +128,64 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Main Thought Feed Showcase with Sorting Tabs */}
       <section className="section">
         <div className="container">
-          <SectionHeading
-            eyebrow="Editorial panels"
-            title="Three ways to move through the platform."
-            copy="Deliberate spacing, quiet typography, and a premium editorial flow."
-          />
-          <div className="panel-grid">
-            <div className="panel">
-              <div className="panel-number">Panel 01</div>
-              <h3 className="panel-title">Share</h3>
-              <p className="section-copy">
-                Publish thoughts, ideas, opinions, and short posts with optional images and hashtags.
-              </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+            <div>
+              <div className="mono" style={{ color: 'var(--ember)', fontWeight: 700 }}>Thought Showcase</div>
+              <h2 className="display-title" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', margin: '4px 0 0' }}>
+                {activeSort === 'trending' ? '🔥 Trending & Most Engaging' : activeSort === 'popular' ? '🏆 Most Popular All-Time' : '⚡ Latest Published Thoughts'}
+              </h2>
             </div>
-            <div className="panel">
-              <div className="panel-number">Panel 02</div>
-              <h3 className="panel-title">Discover</h3>
-              <p className="section-copy">
-                Explore thoughts from other people, browse categories, and search by topic or keyword.
-              </p>
-            </div>
-            <div className="panel">
-              <div className="panel-number">Panel 03</div>
-              <h3 className="panel-title">Connect</h3>
-              <p className="section-copy">
-                Like, comment, reply, follow, save, and receive notifications when conversation continues.
-              </p>
+
+            {/* Feed Sort Tabs */}
+            <div className="feed-sort-tabs">
+              <button
+                type="button"
+                className={`feed-sort-tab ${activeSort === 'trending' ? 'is-active' : ''}`}
+                onClick={() => setActiveSort('trending')}
+              >
+                🔥 Trending
+              </button>
+              <button
+                type="button"
+                className={`feed-sort-tab ${activeSort === 'newest' ? 'is-active' : ''}`}
+                onClick={() => setActiveSort('newest')}
+              >
+                ⚡ Latest
+              </button>
+              <button
+                type="button"
+                className={`feed-sort-tab ${activeSort === 'popular' ? 'is-active' : ''}`}
+                onClick={() => setActiveSort('popular')}
+              >
+                🏆 Most Liked
+              </button>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="section">
-        <div className="container">
-          <SectionHeading
-            eyebrow="Thought showcase"
-            title="Recent thoughts published by the community."
-            copy="Minimal cards keep the writing and the author first, while the interface stays calm and focused."
-          />
           {thoughts.length ? (
             <div className="thought-grid">
-              {thoughts.map((thought) => (
+              {thoughts.map((thought, idx) => (
                 <Reveal key={thought._id}>
-                  <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+                  <div style={{ position: 'relative' }}>
+                    {activeSort === 'trending' && idx < 3 ? (
+                      <div className="trend-rank-badge">
+                        {idx === 0 ? '🥇 #1 Trending' : idx === 1 ? '🥈 #2 Trending' : '🥉 #3 Trending'}
+                      </div>
+                    ) : null}
+                    <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+                  </div>
                 </Reveal>
               ))}
             </div>
           ) : !loading ? (
             <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <p className="empty-state">No thoughts have been published yet.</p>
+              <p className="empty-state">No thoughts found in this view yet.</p>
               <div style={{ marginTop: '16px' }}>
                 <Link href="/create" className="button">
-                  Be the First to Publish a Thought
+                  ✍️ Be the First to Share a Thought
                 </Link>
               </div>
             </div>
@@ -180,6 +193,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Community Categories */}
       <section className="section">
         <div className="container">
           <div className="community-card">
@@ -195,7 +209,7 @@ export default function HomePage() {
             {categories.length ? (
               <div className="category-row" style={{ marginTop: '24px' }}>
                 {categories.map((cat) => (
-                  <Link key={cat.slug} href="/explore" className="category-pill">
+                  <Link key={cat.slug} href={`/explore?category=${cat.slug}`} className="category-pill">
                     #{cat.name} ({cat.thoughtCount || 0})
                   </Link>
                 ))}
@@ -207,3 +221,4 @@ export default function HomePage() {
     </div>
   );
 }
+

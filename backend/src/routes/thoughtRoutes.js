@@ -7,6 +7,7 @@ import {
   getThoughtByCategory,
   getThoughts,
   getTrendingThoughts,
+  recordView,
   searchThoughts,
   shareThought,
   toggleLikeThought,
@@ -30,5 +31,7 @@ router.delete('/:id', protect, deleteThought);
 router.post('/:id/like', protect, toggleLikeThought);
 router.post('/:id/save', protect, toggleSaveThought);
 router.post('/:id/share', optionalAuth, shareThought);
+router.post('/:id/view', optionalAuth, recordView);
 
 export default router;
+

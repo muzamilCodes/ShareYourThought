@@ -30,6 +30,7 @@ export function ThoughtCard({
   const [likes, setLikes] = useState(thought.likes?.length || 0);
   const [saves, setSaves] = useState(thought.saves?.length || 0);
   const [shares, setShares] = useState(thought.sharesCount || 0);
+  const [views, setViews] = useState(thought.viewsCount || 0);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -57,6 +58,17 @@ export function ThoughtCard({
     setEditCategory(thought.category);
     setEditImageUrl(thought.imageUrl || '');
     setEditHashtags((thought.hashtags || []).join(', '));
+    setLikes(thought.likes?.length || 0);
+    setSaves(thought.saves?.length || 0);
+    setShares(thought.sharesCount || 0);
+    setViews(thought.viewsCount || 0);
+
+    // Record view quietly
+    api.recordView(thought._id)
+      .then((res) => {
+        if (res?.views) setViews(res.views);
+      })
+      .catch(() => {});
   }, [thought]);
 
   useEffect(() => {
@@ -386,6 +398,9 @@ export function ThoughtCard({
             <Link className="thought-action" href={`/thought/${currentThought._id}`} title="Comments">
               💬 {currentThought.commentsCount || 0}
             </Link>
+            <span className="thought-action view-badge" title="Views">
+              👁️ {views}
+            </span>
             <button className="thought-action" onClick={handleShare} title="Share thought">
               {copied ? '✓ Copied' : `↗ ${shares}`}
             </button>
