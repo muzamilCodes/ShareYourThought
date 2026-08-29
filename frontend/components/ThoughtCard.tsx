@@ -452,18 +452,18 @@ export function ThoughtCard({
       ) : (
         <>
           {/* Main Content with Double-Tap to Like */}
-          <div onClick={handleDoubleTap} style={{ cursor: 'pointer' }}>
-            <p className="thought-body" style={{ margin: '10px 0 6px 0' }}>
+          <div onClick={handleDoubleTap} style={{ cursor: 'pointer', userSelect: 'none' }}>
+            {currentThought.imageUrl ? (
+              <div className="insta-post-media" style={{ marginBottom: '12px', borderRadius: '14px', overflow: 'hidden', position: 'relative' }}>
+                <img className="thought-image" src={currentThought.imageUrl} alt="Thought attachment" loading="lazy" />
+              </div>
+            ) : null}
+
+            <p className="thought-body" style={{ margin: '8px 0 6px 0', fontSize: '0.96rem', lineHeight: '1.5' }}>
               {compact && currentThought.content.length > 180
                 ? `${currentThought.content.slice(0, 180)}…`
                 : currentThought.content}
             </p>
-
-            {currentThought.imageUrl ? (
-              <div style={{ marginTop: '12px', borderRadius: '14px', overflow: 'hidden', position: 'relative' }}>
-                <img className="thought-image" src={currentThought.imageUrl} alt="Thought attachment" loading="lazy" />
-              </div>
-            ) : null}
           </div>
 
           {currentThought.hashtags?.length ? (
@@ -477,7 +477,7 @@ export function ThoughtCard({
           ) : null}
 
           {/* Instagram Action Row */}
-          <div className="thought-actions insta-actions-bar" style={{ marginTop: '14px' }}>
+          <div className="thought-actions insta-actions-bar" style={{ marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 className={`thought-action insta-action-btn ${liked ? 'is-active is-liked' : ''}`}
@@ -509,6 +509,18 @@ export function ThoughtCard({
                 <span className="insta-action-icon">{saved ? '🔖' : '🏷️'}</span>
               </button>
             </div>
+          </div>
+
+          {/* Instagram Likes Counter & Comments Link */}
+          <div style={{ padding: '6px 0 2px 0', fontSize: '0.84rem' }}>
+            <strong style={{ color: 'var(--ink)' }}>{likes} {likes === 1 ? 'like' : 'likes'}</strong>
+            {commentsCount > 0 ? (
+              <div style={{ marginTop: '3px' }}>
+                <Link href={`/thought/${currentThought._id}`} style={{ color: 'var(--muted)', fontSize: '0.8rem', textDecoration: 'none' }}>
+                  View all {commentsCount} comments
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           {/* Instagram Quick Comment Input */}

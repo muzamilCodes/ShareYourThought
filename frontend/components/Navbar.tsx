@@ -98,6 +98,9 @@ export function Navbar() {
         {/* Mobile Header Controls (Right side of top bar) */}
         <div className="mobile-header-actions mobile-only" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ThemeToggle compact />
+          <Link href="/create" className="mobile-icon-btn" title="Create Thought" onClick={() => setMobileMenuOpen(false)}>
+            ➕
+          </Link>
           {ready && session ? (
             <>
               <Link href="/notifications" className="mobile-icon-btn" title="Notifications" onClick={() => setMobileMenuOpen(false)}>

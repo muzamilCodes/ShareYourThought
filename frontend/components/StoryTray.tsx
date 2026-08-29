@@ -45,7 +45,7 @@ export function StoryTray({ thoughts = [] }: StoryTrayProps) {
             />
             <span className="story-add-badge">+</span>
           </div>
-          <span className="story-username">Your Thought</span>
+          <span className="story-username">Your Story</span>
         </Link>
 
         {/* Community Creator Stories */}
@@ -56,14 +56,14 @@ export function StoryTray({ thoughts = [] }: StoryTrayProps) {
             className="story-item"
             title={`View @${author.username}`}
           >
-            <div className="story-avatar-ring">
+            <div className="story-avatar-ring is-live">
               <img
                 src={author.avatar}
                 alt={author.name}
                 className="story-avatar"
               />
             </div>
-            <span className="story-username">{author.name.split(' ')[0]}</span>
+            <span className="story-username">{author.username}</span>
           </Link>
         ))}
       </div>
