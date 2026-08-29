@@ -57,24 +57,8 @@ export default function HomePage() {
       </div>
 
       {/* Mobile Quick Create Banner */}
-      <div className="container mobile-only" style={{ marginBottom: '16px', maxWidth: '650px', padding: '0 12px' }}>
-        <Link
-          href="/create"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
-            borderRadius: '20px',
-            textDecoration: 'none',
-            color: 'inherit',
-            background: 'var(--paper)',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow)',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}
-        >
+      <div className="mobile-create-wrapper mobile-only">
+        <Link href="/create" className="mobile-create-bar">
           <img
             src={
               session?.user?.avatar ||
@@ -83,44 +67,13 @@ export default function HomePage() {
                 : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
             }
             alt={session?.user?.name || 'You'}
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              objectFit: 'cover',
-              border: '1.5px solid var(--ember)',
-              flexShrink: 0
-            }}
+            className="mobile-create-avatar"
           />
-          <div
-            style={{
-              flex: 1,
-              minWidth: 0,
-              background: 'var(--dark-soft)',
-              padding: '8px 14px',
-              borderRadius: '20px',
-              fontSize: '0.86rem',
-              color: 'var(--muted)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              border: '1px solid var(--line)'
-            }}
-          >
+          <span className="mobile-create-placeholder">
             What&apos;s on your mind? Share a thought…
-          </div>
-          <span
-            className="button"
-            style={{
-              fontSize: '0.80rem',
-              padding: '6px 14px',
-              minHeight: 'auto',
-              flexShrink: 0,
-              borderRadius: '20px',
-              fontWeight: 700
-            }}
-          >
-            Post
+          </span>
+          <span className="mobile-create-btn">
+            Post ✍️
           </span>
         </Link>
       </div>

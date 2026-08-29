@@ -3250,6 +3250,79 @@ img { max-width: 100%; height: auto; display: block; }
   }
 }
 
+/* =========================================================
+   MOBILE QUICK CREATE BAR (PILL SEARCH / CREATE BAR)
+========================================================= */
+.mobile-create-wrapper {
+  margin: 8px auto 16px auto;
+  width: 100%;
+  max-width: 650px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.mobile-create-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  border-radius: 30px !important;
+  background: var(--paper) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: var(--shadow) !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 52px !important;
+}
+
+.mobile-create-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 1.5px solid var(--ember) !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+.mobile-create-placeholder {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  background: var(--dark-soft) !important;
+  padding: 8px 14px !important;
+  border-radius: 20px !important;
+  font-size: 0.84rem !important;
+  color: var(--muted) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  border: 1px solid var(--line) !important;
+  text-align: left !important;
+}
+
+.mobile-create-btn {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: auto !important;
+  padding: 7px 16px !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  border-radius: 20px !important;
+  background: var(--ember) !important;
+  color: #ffffff !important;
+  border: none !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(200, 109, 52, 0.25) !important;
+}
+
 
 
 
