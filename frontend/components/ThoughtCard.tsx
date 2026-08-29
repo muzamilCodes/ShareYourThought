@@ -335,13 +335,75 @@ export function ThoughtCard({
             </div>
           </div>
           <div className="field" style={{ marginTop: '10px' }}>
-            <label style={{ fontSize: '0.8rem' }}>Image URL (Optional)</label>
-            <input
-              className="input"
-              value={editImageUrl}
-              onChange={(e) => setEditImageUrl(e.target.value)}
-              placeholder="https://..."
-            />
+            <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Attach Image (File or URL)</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                className="input"
+                value={editImageUrl}
+                onChange={(e) => setEditImageUrl(e.target.value)}
+                placeholder="Paste URL or choose file →"
+                style={{ flex: 1 }}
+              />
+              <label
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--line-strong)',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                📷 Choose Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const { fileToCompressedDataUrl } = await import('../lib/imageUtils');
+                        const dataUrl = await fileToCompressedDataUrl(file);
+                        setEditImageUrl(dataUrl);
+                      } catch {
+                        // ignore
+                      }
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            {editImageUrl ? (
+              <div style={{ marginTop: '8px', position: 'relative', display: 'inline-block' }}>
+                <img
+                  src={editImageUrl}
+                  alt="Attachment preview"
+                  style={{ height: '70px', borderRadius: '8px', objectFit: 'cover' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setEditImageUrl('')}
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    background: '#000000',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '20px',
+                    height: '20px',
+                    fontSize: '0.7rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {editError ? <p className="helper" style={{ color: '#c86d34' }}>{editError}</p> : null}

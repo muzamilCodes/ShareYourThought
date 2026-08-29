@@ -32,9 +32,9 @@ app.use(
   })
 );
 
-app.use(helmet());
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(cookieParser());
 
 // Express 5 compatible NoSQL injection sanitizer

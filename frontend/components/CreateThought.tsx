@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
+import { fileToCompressedDataUrl } from '../lib/imageUtils';
 import type { Category, Comment } from '../types';
+
+const SUGGESTED_TAGS = ['reflection', 'mindset', 'life', 'technology', 'creativity', 'philosophy', 'growth'];
 
 export function CreateThought({
   categories,
@@ -16,16 +19,21 @@ export function CreateThought({
 }) {
   const router = useRouter();
   const { session, ready } = useSession();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [form, setForm] = useState({
     content: '',
     imageUrl: '',
     category: categories[0]?.name || 'Life',
     hashtags: ''
   });
+
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
+  const [imageProcessing, setImageProcessing] = useState(false);
 
   useEffect(() => {
     if (!isCustomCategory && categories.length && !form.category) {
@@ -37,6 +45,7 @@ export function CreateThought({
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     setForm({ ...form, [event.target.name]: event.target.value });
+    if (status) setStatus('');
   };
 
   const handleCategorySelectChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -47,6 +56,41 @@ export function CreateThought({
     } else {
       setIsCustomCategory(false);
       setForm({ ...form, category: val });
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImageProcessing(true);
+    setStatus('');
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      setForm((prev) => ({ ...prev, imageUrl: dataUrl }));
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Could not process image.');
+    } finally {
+      setImageProcessing(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setForm((prev) => ({ ...prev, imageUrl: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleAddTag = (tag: string) => {
+    const currentTags = form.hashtags
+      .split(/[\s,]+/)
+      .map((t) => t.trim().replace(/^#/, '').toLowerCase())
+      .filter(Boolean);
+
+    if (!currentTags.includes(tag.toLowerCase())) {
+      const updated = [...currentTags, tag.toLowerCase()].join(', ');
+      setForm((prev) => ({ ...prev, hashtags: updated }));
     }
   };
 
@@ -83,6 +127,8 @@ export function CreateThought({
       setForm({ content: '', imageUrl: '', category: categories[0]?.name || 'Life', hashtags: '' });
       setIsCustomCategory(false);
       setCustomCategory('');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+
       if (onSuccess) {
         onSuccess();
       } else {
@@ -96,125 +142,291 @@ export function CreateThought({
   };
 
   return (
-    <form className="form-grid" onSubmit={handleSubmit}>
-      <div className="field">
-        <label htmlFor="content">Thought Text</label>
-        <textarea
-          className="textarea"
-          id="content"
-          name="content"
-          value={form.content}
-          onChange={handleChange}
-          placeholder="Share a reflection, idea, perspective, or observation…"
-          required
-          rows={4}
-        />
-      </div>
-
-      <div className="field">
-        <label htmlFor="imageUrl">Image URL (Optional)</label>
-        <input
-          className="input"
-          id="imageUrl"
-          name="imageUrl"
-          value={form.imageUrl}
-          onChange={handleChange}
-          placeholder="https://images.unsplash.com/..."
-        />
-      </div>
-
-      <div className="field">
-        <label htmlFor="category">Category (Choose or write your own)</label>
-        {!isCustomCategory ? (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <select
-              className="select"
-              id="category"
-              name="category"
-              value={form.category}
-              onChange={handleCategorySelectChange}
-              style={{ flex: 1 }}
-            >
-              {categories.map((category) => (
-                <option key={category.slug} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-              <option value="__custom__">➕ Write Custom Category…</option>
-            </select>
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() => setIsCustomCategory(true)}
-              style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-            >
-              + Custom
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input
-              className="input"
-              id="customCategory"
-              name="customCategory"
-              value={customCategory}
-              onChange={(e) => setCustomCategory(e.target.value)}
-              placeholder="Type your custom category name…"
-              autoFocus
-              required
-              style={{ flex: 1 }}
-            />
-            <button
-              type="button"
-              className="button-ghost"
-              onClick={() => {
-                setIsCustomCategory(false);
-                setForm({ ...form, category: categories[0]?.name || 'Life' });
+    <div className="form-card" style={{ padding: '24px', borderRadius: '20px' }}>
+      <form className="form-grid" onSubmit={handleSubmit}>
+        {/* Thought Text Input with Character Count */}
+        <div className="field">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="content" style={{ fontWeight: 700 }}>
+              Your Thought
+            </label>
+            <span
+              style={{
+                fontSize: '0.78rem',
+                color: form.content.length > 550 ? '#c86d34' : 'var(--muted)',
+                fontWeight: 600
               }}
-              style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
             >
-              ← Choose List
-            </button>
+              {form.content.length} / 600
+            </span>
           </div>
-        )}
-      </div>
+          <textarea
+            className="textarea"
+            id="content"
+            name="content"
+            value={form.content}
+            onChange={handleChange}
+            placeholder="What's on your mind? Share an insight, reflection, or observation…"
+            required
+            maxLength={600}
+            rows={5}
+            style={{ fontSize: '1.02rem', lineHeight: '1.55' }}
+          />
+        </div>
 
-      <div className="field">
-        <label htmlFor="hashtags">Hashtags (comma or space separated)</label>
-        <input
-          className="input"
-          id="hashtags"
-          name="hashtags"
-          value={form.hashtags}
-          onChange={handleChange}
-          placeholder="technology, writing, perspective"
-        />
-      </div>
+        {/* Image Attachment Box (Direct Mobile / File Upload + URL Option) */}
+        <div className="field" style={{ background: 'rgba(20, 20, 17, 0.03)', padding: '16px', borderRadius: '16px', border: '1px dashed var(--line-strong)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <label style={{ fontWeight: 700, margin: 0, fontSize: '0.92rem' }}>
+              🖼️ Attach Photo (Optional)
+            </label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => setImageMode('upload')}
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: imageMode === 'upload' ? 'var(--ink)' : 'transparent',
+                  color: imageMode === 'upload' ? '#ffffff' : 'var(--muted)',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                📷 Upload / Camera
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageMode('url')}
+                style={{
+                  fontSize: '0.78rem',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: imageMode === 'url' ? 'var(--ink)' : 'transparent',
+                  color: imageMode === 'url' ? '#ffffff' : 'var(--muted)',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                🔗 Image URL
+              </button>
+            </div>
+          </div>
 
-      <div className="form-actions">
-        <button className="button" type="submit" disabled={loading}>
-          {loading ? 'Publishing…' : 'Publish Thought'}
-        </button>
-        <button
-          className="button-outline"
-          type="button"
-          onClick={() => {
-            setForm({ content: '', imageUrl: '', category: categories[0]?.name || 'Life', hashtags: '' });
-            setIsCustomCategory(false);
-          }}
-        >
-          Clear
-        </button>
-      </div>
+          {/* Hidden Native File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
 
-      {status ? (
-        <p className="helper" style={{ color: status.includes('success') ? '#4a7c59' : '#c86d34' }}>
-          {status}
-        </p>
-      ) : null}
-    </form>
+          {imageMode === 'upload' ? (
+            <div>
+              {!form.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={imageProcessing}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--line-strong)',
+                    background: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    color: 'var(--ink)'
+                  }}
+                >
+                  <span style={{ fontSize: '1.6rem' }}>📸</span>
+                  <strong style={{ fontSize: '0.92rem' }}>
+                    {imageProcessing ? 'Processing image…' : 'Tap to Choose Photo from Phone or Laptop'}
+                  </strong>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Supports Camera, Gallery, JPG, PNG, WEBP</span>
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div>
+              <input
+                className="input"
+                id="imageUrl"
+                name="imageUrl"
+                value={form.imageUrl}
+                onChange={handleChange}
+                placeholder="Paste image link e.g. https://images.unsplash.com/..."
+              />
+            </div>
+          )}
+
+          {/* Image Preview Thumbnail */}
+          {form.imageUrl ? (
+            <div style={{ position: 'relative', marginTop: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--line)' }}>
+              <img
+                src={form.imageUrl}
+                alt="Selected attachment"
+                style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', display: 'block' }}
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'rgba(0, 0, 0, 0.75)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '6px 12px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backdropFilter: 'blur(4px)'
+                }}
+              >
+                ✕ Remove Image
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Category Selector */}
+        <div className="field">
+          <label htmlFor="category" style={{ fontWeight: 700 }}>
+            Category
+          </label>
+          {!isCustomCategory ? (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <select
+                className="select"
+                id="category"
+                name="category"
+                value={form.category}
+                onChange={handleCategorySelectChange}
+                style={{ flex: 1 }}
+              >
+                {categories.map((category) => (
+                  <option key={category.slug} value={category.name}>
+                    #{category.name}
+                  </option>
+                ))}
+                <option value="__custom__">➕ Write Custom Category…</option>
+              </select>
+              <button
+                type="button"
+                className="button-ghost"
+                onClick={() => setIsCustomCategory(true)}
+                style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+              >
+                + Custom
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                className="input"
+                id="customCategory"
+                name="customCategory"
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Type your custom category name…"
+                autoFocus
+                required
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="button-ghost"
+                onClick={() => {
+                  setIsCustomCategory(false);
+                  setForm({ ...form, category: categories[0]?.name || 'Life' });
+                }}
+                style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+              >
+                ← List
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Hashtags Input & Quick Suggestions */}
+        <div className="field">
+          <label htmlFor="hashtags" style={{ fontWeight: 700 }}>
+            Hashtags (Optional)
+          </label>
+          <input
+            className="input"
+            id="hashtags"
+            name="hashtags"
+            value={form.hashtags}
+            onChange={handleChange}
+            placeholder="e.g. writing, life, ideas"
+          />
+          {/* Quick Tag Suggestions */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--muted)', alignSelf: 'center' }}>Suggestions:</span>
+            {SUGGESTED_TAGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleAddTag(tag)}
+                style={{
+                  fontSize: '0.76rem',
+                  padding: '3px 8px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--line)',
+                  background: 'rgba(20, 20, 17, 0.04)',
+                  color: 'var(--ink)',
+                  cursor: 'pointer'
+                }}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Submit Actions */}
+        <div className="form-actions" style={{ marginTop: '8px' }}>
+          <button className="button" type="submit" disabled={loading || imageProcessing} style={{ flex: 1 }}>
+            {loading ? 'Publishing Thought…' : '✨ Publish Thought'}
+          </button>
+          <button
+            className="button-outline"
+            type="button"
+            onClick={() => {
+              setForm({ content: '', imageUrl: '', category: categories[0]?.name || 'Life', hashtags: '' });
+              setIsCustomCategory(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+          >
+            Clear
+          </button>
+        </div>
+
+        {status ? (
+          <p className="helper" style={{ color: status.includes('success') ? '#4a7c59' : '#c86d34', fontWeight: 600 }}>
+            {status}
+          </p>
+        ) : null}
+      </form>
+    </div>
   );
 }
+
 
 function CommentItem({
   thoughtId,
