@@ -122,8 +122,7 @@ export const sendRegisterOtp = asyncHandler(async (req, res) => {
 
   res.json({
     message: `A 6-digit verification code has been sent to ${cleanEmail}`,
-    email: cleanEmail,
-    previewOtp: code
+    email: cleanEmail
   });
 });
 
@@ -229,8 +228,7 @@ export const sendLoginOtp = asyncHandler(async (req, res) => {
 
   res.json({
     message: `A 6-digit login code has been sent to ${user.email}`,
-    email: user.email,
-    previewOtp: code
+    email: user.email
   });
 });
 
@@ -372,8 +370,7 @@ export const sendForgotPasswordOtp = asyncHandler(async (req, res) => {
 
   res.json({
     message: `A 6-digit password reset code has been sent to ${cleanEmail}`,
-    email: cleanEmail,
-    previewOtp: code
+    email: cleanEmail
   });
 });
 

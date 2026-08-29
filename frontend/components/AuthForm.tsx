@@ -39,7 +39,6 @@ export function AuthForm({
   const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
   const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
   const [targetEmail, setTargetEmail] = useState('');
-  const [receivedPreviewOtp, setReceivedPreviewOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -79,7 +78,6 @@ export function AuthForm({
     setAuthStep('details');
     setError('');
     setSuccessMsg('');
-    setReceivedPreviewOtp('');
     setOtpCode(['', '', '', '', '', '']);
   };
 
@@ -146,9 +144,6 @@ export function AuthForm({
 
         setTargetEmail(res.email || form.email.trim());
         setSuccessMsg(res.message || `We sent a 6-digit verification code to ${form.email.trim()}`);
-        if (res.previewOtp) {
-          setReceivedPreviewOtp(res.previewOtp);
-        }
         playOtpSound();
         setAuthStep('otp');
         setResendTimer(60);
@@ -165,9 +160,6 @@ export function AuthForm({
           const res = await api.sendLoginOtp({ identifier });
           setTargetEmail(res.email || identifier);
           setSuccessMsg(res.message || `We sent a 6-digit login code to your email`);
-          if (res.previewOtp) {
-            setReceivedPreviewOtp(res.previewOtp);
-          }
           playOtpSound();
           setAuthStep('otp');
           setResendTimer(60);
@@ -195,9 +187,6 @@ export function AuthForm({
         const res = await api.sendForgotPasswordOtp({ email });
         setTargetEmail(res.email || email);
         setSuccessMsg(res.message || `We sent a password reset code to ${email}`);
-        if (res.previewOtp) {
-          setReceivedPreviewOtp(res.previewOtp);
-        }
         playOtpSound();
         setAuthStep('otp');
         setResendTimer(60);
@@ -278,18 +267,15 @@ export function AuthForm({
           email: targetEmail || form.email.trim(),
           password: form.password
         });
-        if (res.previewOtp) setReceivedPreviewOtp(res.previewOtp);
         playOtpSound();
         setSuccessMsg(res.message || 'New verification code sent successfully!');
       } else if (currentMode === 'login') {
         const identifier = (form.identifier || form.email || form.username).trim();
         const res = await api.sendLoginOtp({ identifier: identifier || targetEmail });
-        if (res.previewOtp) setReceivedPreviewOtp(res.previewOtp);
         playOtpSound();
         setSuccessMsg(res.message || 'New login code sent successfully!');
       } else {
         const res = await api.sendForgotPasswordOtp({ email: targetEmail || form.email.trim() });
-        if (res.previewOtp) setReceivedPreviewOtp(res.previewOtp);
         playOtpSound();
         setSuccessMsg(res.message || 'New password reset code sent successfully!');
       }
@@ -609,49 +595,13 @@ export function AuthForm({
             </p>
           </div>
 
-          {/* Instant Code Helper / Auto-fill banner */}
-          {receivedPreviewOtp && (
-            <div
-              style={{
-                margin: '10px 0 14px 0',
-                padding: '12px 14px',
-                background: 'rgba(200, 109, 52, 0.08)',
-                border: '1.5px dashed var(--ember)',
-                borderRadius: '14px',
-                textAlign: 'center'
-              }}
-            >
-              <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                <span>🔔</span> <strong>Instant Verification Code:</strong>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '6px' }}>
-                <span style={{ fontSize: '1.45rem', fontWeight: 800, letterSpacing: '4px', fontFamily: 'monospace', color: 'var(--ember)' }}>
-                  {receivedPreviewOtp}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const digits = receivedPreviewOtp.slice(0, 6).split('');
-                    setOtpCode(digits);
-                    playOtpSound();
-                    otpInputRefs.current[5]?.focus();
-                  }}
-                  className="button"
-                  style={{ fontSize: '0.76rem', padding: '4px 12px', minHeight: 'auto', borderRadius: '12px', fontWeight: 700 }}
-                >
-                  ✨ Auto Fill
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* 6 Digit OTP Boxes */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'center',
               gap: '8px',
-              margin: '10px 0'
+              margin: '14px 0 10px 0'
             }}
           >
             {otpCode.map((digit, idx) => (
