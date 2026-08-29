@@ -23,7 +23,7 @@ export function BottomNav() {
     }
   }, [ready, session?.token, pathname]);
 
-  const userProfileHref = session?.user?.username ? `/profile/${session.user.username}` : '/login';
+  const profileHref = session?.user?.username ? `/profile/${session.user.username}` : '/profile';
   const userAvatar = session?.user?.avatar;
 
   const navItems = [
@@ -47,20 +47,20 @@ export function BottomNav() {
       isActive: pathname === '/create'
     },
     {
-      href: session ? '/notifications' : '/login',
+      href: '/notifications',
       label: 'Alerts',
       icon: '🔔',
       badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null,
       isActive: pathname === '/notifications'
     },
     {
-      href: userProfileHref,
-      label: session ? 'Profile' : 'Sign In',
+      href: profileHref,
+      label: session ? 'Profile' : 'Account',
       icon: userAvatar ? (
         <img
           src={userAvatar}
           alt="Profile"
-          style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+          style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }}
         />
       ) : (
         '👤'

@@ -1304,11 +1304,12 @@ img { max-width: 100%; height: auto; display: block; }
 .bottom-nav-inner {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  height: 60px;
-  max-width: 540px;
+  justify-content: space-between;
+  height: 62px;
+  max-width: 460px;
   margin: 0 auto;
-  padding: 0 8px;
+  padding: 0 16px;
+  gap: 12px;
 }
 
 .bottom-nav-item {
@@ -1322,7 +1323,8 @@ img { max-width: 100%; height: auto; display: block; }
   color: var(--muted);
   transition: all 160ms ease;
   position: relative;
-  min-width: 44px;
+  min-width: 48px;
+  padding: 6px 4px;
 }
 
 .bottom-nav-item:hover,
