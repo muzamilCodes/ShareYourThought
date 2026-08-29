@@ -3,6 +3,7 @@ import {
   createThought,
   deleteThought,
   getExploreThoughts,
+  getPlatformStats,
   getThought,
   getThoughtByCategory,
   getThoughts,
@@ -18,6 +19,7 @@ import { optionalAuth, protect } from '../middleware/auth.js';
 
 const router = Router();
 
+router.get('/stats/summary', getPlatformStats);
 router.get('/', optionalAuth, getThoughts);
 router.get('/explore/all', optionalAuth, getExploreThoughts);
 router.get('/trending/top', optionalAuth, getTrendingThoughts);
@@ -34,4 +36,5 @@ router.post('/:id/share', optionalAuth, shareThought);
 router.post('/:id/view', optionalAuth, recordView);
 
 export default router;
+
 

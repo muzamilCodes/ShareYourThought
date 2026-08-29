@@ -280,3 +280,32 @@ export const getThoughtByCategory = asyncHandler(async (req, res) => {
   res.json({ thoughts });
 });
 
+export const getPlatformStats = asyncHandler(async (_req, res) => {
+  const [totalThoughts, totalUsers, totalCategories, thoughts] = await Promise.all([
+    Thought.countDocuments(),
+    User.countDocuments(),
+    Category.countDocuments(),
+    Thought.find({}).select('likes commentsCount sharesCount viewsCount')
+  ]);
+
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalViews = 0;
+
+  thoughts.forEach((t) => {
+    totalLikes += t.likes?.length || 0;
+    totalComments += t.commentsCount || 0;
+    totalViews += t.viewsCount || 0;
+  });
+
+  res.json({
+    totalThoughts,
+    totalUsers,
+    totalCategories,
+    totalLikes,
+    totalComments,
+    totalViews
+  });
+});
+
+

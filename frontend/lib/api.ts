@@ -147,6 +147,15 @@ export const api = {
   listNotifications: (token: string) => apiFetch<{ notifications: Notification[]; unreadCount: number }>('/notifications', { token }),
   markAllNotificationsRead: (token: string) => apiFetch<{ message: string }>('/notifications/read-all', { method: 'PATCH', token }),
   listCategories: () => apiFetch<{ categories: Category[] }>('/categories'),
+  getStats: () =>
+    apiFetch<{
+      totalThoughts: number;
+      totalUsers: number;
+      totalCategories: number;
+      totalLikes: number;
+      totalComments: number;
+      totalViews: number;
+    }>('/thoughts/stats/summary'),
   report: (payload: { targetType: 'thought' | 'comment' | 'user'; targetId: string; reason: string; details?: string }, token: string) =>
     apiFetch<{ report: unknown }>('/reports', { method: 'POST', token, body: JSON.stringify(payload) })
 };
