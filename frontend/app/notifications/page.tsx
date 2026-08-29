@@ -90,7 +90,7 @@ export default function NotificationsPage() {
             Stay updated when people like your thoughts, comment on your ideas, or follow your profile.
           </p>
           <Link href="/login" className="button">
-            Login to ThoughtShare
+            Login to Share Your Thoughts
           </Link>
         </div>
       </div>
@@ -105,9 +105,11 @@ export default function NotificationsPage() {
     system: '📢'
   };
 
+  const nonMessageNotifications = notifications.filter((n) => (n.type as string) !== 'message');
+
   const filteredNotifications = activeFilter === 'all'
-    ? notifications
-    : notifications.filter((n) => {
+    ? nonMessageNotifications
+    : nonMessageNotifications.filter((n) => {
         if (activeFilter === 'like') return n.type === 'like';
         if (activeFilter === 'comment') return n.type === 'comment' || n.type === 'reply';
         if (activeFilter === 'follow') return n.type === 'follow';

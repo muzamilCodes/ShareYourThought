@@ -25,75 +25,85 @@ export default function TrendingPage() {
   };
 
   return (
-    <div className="page container">
-      <section className="explore-hero">
-        <div className="hero-kicker" style={{ marginBottom: '10px' }}>
-          🔥 Live Algorithm
+    <div className="page container" style={{ maxWidth: '650px' }}>
+      {/* Clean Trending Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <div className="hero-kicker" style={{ marginBottom: '6px', fontSize: '0.82rem' }}>
+          🔥 Trending Leaderboard
         </div>
-        <h1 className="display-title display-title-xl">Thoughts with the highest momentum.</h1>
-        <p className="section-copy section-copy-lg">
-          Calculated in real-time based on Likes, Comments, Saves, Shares, and Views. The most active discussions rise to the top.
+        <h1 className="display-title" style={{ fontSize: '1.75rem', margin: '0 0 6px 0', color: 'var(--ink)' }}>
+          Top Ranked Thoughts Right Now
+        </h1>
+        <p className="section-copy" style={{ margin: 0, fontSize: '0.90rem' }}>
+          Calculated in real-time based on Likes, Comments, Saves, and Views.
         </p>
+      </div>
 
-        {/* Trending Dynamics Pillars */}
-        <div className="panel-grid" style={{ marginTop: '24px', textAlign: 'left' }}>
-          <div className="note-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <div className="mono">01 · Likes & Reactions</div>
-              <span className="pill">5x Boost</span>
-            </div>
-            <p className="note-copy">Direct likes and interactions boost rank & visibility across the community.</p>
-          </div>
-          <div className="note-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <div className="mono">02 · Deep Discussions</div>
-              <span className="pill">4x Boost</span>
-            </div>
-            <p className="note-copy">Active comment sections and debates keep thoughts alive & trending.</p>
-          </div>
-          <div className="note-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <div className="mono">03 · Views & Impressions</div>
-              <span className="pill">Real Views</span>
-            </div>
-            <p className="note-copy">Real-time readership metrics track what people are actively returning to.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container" style={{ maxWidth: '650px' }}>
-          <SectionHeading eyebrow="Momentum Leaderboard" title="Top Ranked Thoughts Right Now" />
-          {thoughts.length ? (
-            <div className="list-grid">
-              {thoughts.map((thought, index) => {
-                const badge = index === 0 ? '🥇 #1 Trending' : index === 1 ? '🥈 #2 Trending' : index === 2 ? '🥉 #3 Trending' : `Rank #${index + 1}`;
-                return (
-                  <div key={thought._id} className="trend-card" style={{ position: 'relative' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <span className="mono" style={{ color: index < 3 ? 'var(--ember)' : 'var(--muted)', fontWeight: 800, fontSize: '0.92rem' }}>
-                        {badge}
-                      </span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                        {(thought.likes?.length || 0) + (thought.commentsCount || 0) + (thought.sharesCount || 0)} Total Reactions
-                      </span>
-                    </div>
-                    <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+      {/* Leaderboard List */}
+      <section style={{ marginTop: '12px' }}>
+        {thoughts.length ? (
+          <div className="list-grid">
+            {thoughts.map((thought, index) => {
+              const badge =
+                index === 0
+                  ? '🥇 #1 Trending'
+                  : index === 1
+                  ? '🥈 #2 Trending'
+                  : index === 2
+                  ? '🥉 #3 Trending'
+                  : `Rank #${index + 1}`;
+              return (
+                <div key={thought._id} className="trend-card" style={{ position: 'relative' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '10px'
+                    }}
+                  >
+                    <span
+                      className="mono"
+                      style={{
+                        color: index < 3 ? 'var(--ember)' : 'var(--muted)',
+                        fontWeight: 800,
+                        fontSize: '0.92rem'
+                      }}
+                    >
+                      {badge}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                      {(thought.likes?.length || 0) +
+                        (thought.commentsCount || 0) +
+                        (thought.sharesCount || 0)}{' '}
+                      Reactions
+                    </span>
                   </div>
-                );
-              })}
+                  <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+                </div>
+              );
+            })}
+          </div>
+        ) : !loading ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '48px 0',
+              background: 'var(--paper)',
+              borderRadius: '20px',
+              border: '1px solid var(--line)'
+            }}
+          >
+            <p className="empty-state">
+              No trending thoughts yet. Publish, like, or comment on thoughts to see them trend!
+            </p>
+            <div style={{ marginTop: '16px' }}>
+              <Link href="/create" className="button">
+                ✍️ Share a Thought
+              </Link>
             </div>
-          ) : !loading ? (
-            <div style={{ textAlign: 'center', padding: '48px 0' }}>
-              <p className="empty-state">No trending thoughts yet. Publish, like, or comment on thoughts to see them trend!</p>
-              <div style={{ marginTop: '16px' }}>
-                <Link href="/create" className="button">
-                  ✍️ Share a Thought
-                </Link>
-              </div>
-            </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );

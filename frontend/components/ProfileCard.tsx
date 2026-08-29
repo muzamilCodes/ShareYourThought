@@ -93,9 +93,9 @@ export function ProfileCard({
           <Link
             href="/settings"
             className="button-outline"
-            style={{ fontSize: '0.86rem', padding: '6px 18px', minHeight: 'auto' }}
+            style={{ fontSize: '0.86rem', padding: '6px 16px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            Edit Profile
+            <span>⚙️</span> Edit Profile & Settings
           </Link>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

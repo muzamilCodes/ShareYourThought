@@ -143,6 +143,9 @@ export function AuthForm({
 
         setTargetEmail(res.email || form.email.trim());
         setSuccessMsg(res.message || `We sent a 6-digit verification code to ${form.email.trim()}`);
+        if (res.previewOtp) {
+          console.log(`%c[Share Your Thoughts OTP Code]: ${res.previewOtp}`, 'color: #ea580c; font-size: 16px; font-weight: bold;');
+        }
         setAuthStep('otp');
         setResendTimer(60);
         setCanResend(false);
@@ -625,6 +628,10 @@ export function AuthForm({
               />
             ))}
           </div>
+
+          <p style={{ margin: '4px 0 8px 0', fontSize: '0.80rem', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.4 }}>
+            💡 <em>Code not visible in Inbox? Please check your <strong>Spam / Junk</strong> or <strong>Promotions</strong> folder.</em>
+          </p>
 
           {/* If Forgot Password Mode, enter new password */}
           {currentMode === 'forgot' && (

@@ -47,6 +47,12 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   if (!response.ok) {
+    if (response.status === 401 && options.token) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('thoughtshare-session');
+        window.dispatchEvent(new Event('auth-session-expired'));
+      }
+    }
     throw new Error(data.message || data.error || `Request failed (${response.status})`);
   }
   return data as T;
@@ -156,6 +162,8 @@ export const api = {
     apiFetch<{ following: User[]; isPrivateLocked?: boolean }>(`/users/${username}/following`, { token }),
   updateMe: (payload: Partial<{ name: string; username: string; bio: string; avatar: string; website: string; location: string; isPrivate: boolean }>, token: string) =>
     apiFetch<{ user: User }>('/users/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
+  deleteAccount: (token: string) =>
+    apiFetch<{ message: string }>('/users/me', { method: 'DELETE', token }),
   savedThoughts: (token: string) => apiFetch<{ thoughts: Thought[] }>('/users/saved/thoughts', { token }),
   followUser: (userId: string, token: string) =>
     apiFetch<{ following: boolean; requested?: boolean; followers: number; followingCount: number }>(

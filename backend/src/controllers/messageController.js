@@ -1,7 +1,7 @@
+import mongoose from 'mongoose';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { createNotification } from '../utils/notifications.js';
 
 function safeUser(u) {
   if (!u) return null;
@@ -30,8 +30,10 @@ export const getConversations = asyncHandler(async (req, res) => {
   const conversationsMap = new Map();
 
   for (const msg of messages) {
+    if (!msg.sender || !msg.recipient) continue;
     const isSender = msg.sender._id.toString() === currentUserId.toString();
     const partner = isSender ? msg.recipient : msg.sender;
+    if (!partner || !partner._id) continue;
     const partnerId = partner._id.toString();
 
     if (!conversationsMap.has(partnerId)) {
@@ -64,7 +66,7 @@ export const getMessages = asyncHandler(async (req, res) => {
   const targetParam = req.params.userId;
 
   let partner = null;
-  if (targetParam.match(/^[0-9a-fA-F]{24}$/)) {
+  if (mongoose.Types.ObjectId.isValid(targetParam)) {
     partner = await User.findById(targetParam);
   }
   if (!partner) {
@@ -110,7 +112,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   let recipient = null;
-  if (targetParam.match(/^[0-9a-fA-F]{24}$/)) {
+  if (mongoose.Types.ObjectId.isValid(targetParam)) {
     recipient = await User.findById(targetParam);
   }
   if (!recipient) {
@@ -134,15 +136,6 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const populated = await Message.findById(message._id)
     .populate('sender', 'name username avatar')
     .populate('recipient', 'name username avatar');
-
-  // Trigger notification for message
-  await createNotification({
-    recipient: recipient._id,
-    actor: currentUserId,
-    type: 'system',
-    title: `💬 New message from ${req.user.name}`,
-    body: content.length > 60 ? `${content.slice(0, 57)}…` : content
-  });
 
   res.status(201).json({ message: populated });
 });

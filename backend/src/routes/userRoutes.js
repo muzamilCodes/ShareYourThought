@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  deleteMe,
   getFollowers,
   getFollowing,
   getMe,
@@ -13,6 +14,7 @@ import { optionalAuth, protect } from '../middleware/auth.js';
 const router = Router();
 router.get('/me', protect, getMe);
 router.patch('/me', protect, updateMe);
+router.delete('/me', protect, deleteMe);
 router.get('/search', searchUsers);
 router.get('/saved/thoughts', protect, getSavedThoughts);
 router.get('/:username/followers', optionalAuth, getFollowers);

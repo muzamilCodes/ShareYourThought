@@ -18,13 +18,21 @@ export function Footer() {
           <span className="footer-dot">·</span>
           <Link href="/settings">Settings</Link>
           <span className="footer-dot">·</span>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', font: 'inherit', cursor: 'pointer', padding: 0 }}
+          >
+            📲 Install App
+          </button>
+          <span className="footer-dot">·</span>
           <Link href="/login">Account</Link>
         </nav>
 
         {/* Brand & Copyright */}
         <p className="footer-compact-copy">
           <span className="brand-mark-mini" />
-          © {new Date().getFullYear()} <strong>ThoughtShare</strong> · Authentic Public Thoughts
+          © {new Date().getFullYear()} <strong>Share Your Thoughts</strong> · Authentic Public Thoughts
         </p>
       </div>
     </footer>

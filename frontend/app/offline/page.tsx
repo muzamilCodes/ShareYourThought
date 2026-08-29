@@ -30,7 +30,7 @@ export default function OfflinePage() {
           You're Offline
         </h1>
         <p className="section-copy section-copy-lg" style={{ marginBottom: '24px' }}>
-          Your internet connection appears to be unavailable. Don't worry, ThoughtShare will automatically reconnect once you're back online.
+          Your internet connection appears to be unavailable. Don't worry, Share Your Thoughts will automatically reconnect once you're back online.
         </p>
 
         <div className="button-row" style={{ justifyContent: 'center', gap: '12px' }}>

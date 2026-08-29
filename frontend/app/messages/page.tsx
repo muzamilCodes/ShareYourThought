@@ -37,6 +37,11 @@ function MessagesContent() {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const activePartnerRef = useRef<User | null>(null);
+
+  useEffect(() => {
+    activePartnerRef.current = activePartner;
+  }, [activePartner]);
 
   // Auto-scroll to bottom of messages
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
@@ -62,6 +67,7 @@ function MessagesContent() {
       const res = await api.getMessages(partnerIdOrUsername, token);
       if (res?.partner) {
         setActivePartner(res.partner);
+        activePartnerRef.current = res.partner;
         setMessages(res.messages || []);
       }
     } catch {
@@ -84,7 +90,7 @@ function MessagesContent() {
     }
   }, [ready, session?.token, targetUserParam]);
 
-  // Real-time polling every 3 seconds for active chat & conversation updates
+  // Real-time polling every 2.5 seconds for active chat & conversation updates
   useEffect(() => {
     if (!session?.token) return;
 
@@ -95,8 +101,9 @@ function MessagesContent() {
       }).catch(() => {});
 
       // Poll active chat if open
-      if (activePartner) {
-        const partnerIdentifier = activePartner._id || activePartner.id || activePartner.username;
+      const currentPartner = activePartnerRef.current;
+      if (currentPartner) {
+        const partnerIdentifier = currentPartner._id || currentPartner.id || currentPartner.username;
         if (partnerIdentifier) {
           api.getMessages(partnerIdentifier, session.token).then((res) => {
             if (res?.messages) {
@@ -110,10 +117,10 @@ function MessagesContent() {
           }).catch(() => {});
         }
       }
-    }, 3000);
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [session?.token, activePartner]);
+  }, [session?.token]);
 
   // Handle Search for Users
   useEffect(() => {
@@ -197,10 +204,10 @@ function MessagesContent() {
             Sign in to Chat
           </h1>
           <p className="section-copy" style={{ margin: '0 auto 20px auto', fontSize: '0.92rem', maxWidth: '38ch' }}>
-            Send direct messages, share ideas, and connect one-on-one with ThoughtShare creators.
+            Send direct messages, share ideas, and connect one-on-one with Share Your Thoughts creators.
           </p>
           <Link href="/login" className="button">
-            Login to ThoughtShare
+            Login to Share Your Thoughts
           </Link>
         </div>
       </div>
@@ -461,7 +468,7 @@ function MessagesContent() {
               Your Messages
             </h2>
             <p style={{ maxWidth: '38ch', margin: '0 0 20px 0', fontSize: '0.92rem', color: 'var(--muted)', lineHeight: 1.5 }}>
-              Send private thoughts, ideas, and connect directly with other writers on ThoughtShare.
+              Send private thoughts, ideas, and connect directly with other writers on Share Your Thoughts.
             </p>
           </div>
         )}

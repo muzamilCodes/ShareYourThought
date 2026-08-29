@@ -142,7 +142,7 @@ self.addEventListener('fetch', (event) => {
 
 // 4. Push Notification Event
 self.addEventListener('push', (event) => {
-  let data = { title: 'ThoughtShare', body: 'You have new activity on ThoughtShare!', url: '/' };
+  let data = { title: 'Share Your Thoughts', body: 'You have new activity on Share Your Thoughts!', url: '/' };
 
   try {
     if (event.data) {
@@ -157,18 +157,18 @@ self.addEventListener('push', (event) => {
   const options = {
     body: data.body,
     icon: '/icons/icon-192.png',
-    badge: '/icons/icon.svg',
+    badge: '/icons/icon-192.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/'
     },
     actions: [
-      { action: 'open', title: 'Open ThoughtShare' },
+      { action: 'open', title: 'Open Share Your Thoughts' },
       { action: 'dismiss', title: 'Dismiss' }
     ]
   };
 
-  event.waitUntil(self.registration.showNotification(data.title || 'ThoughtShare', options));
+  event.waitUntil(self.registration.showNotification(data.title || 'Share Your Thoughts', options));
 });
 
 // 5. Notification Click Handler

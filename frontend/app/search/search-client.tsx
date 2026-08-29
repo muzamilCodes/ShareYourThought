@@ -59,7 +59,7 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
       {/* Search Header & Input Bar */}
       <section style={{ marginBottom: '24px' }}>
         <h1 className="display-title" style={{ fontSize: '1.75rem', marginBottom: '14px', color: 'var(--ink)' }}>
-          🔍 Search ThoughtShare
+          🔍 Search Share Your Thoughts
         </h1>
 
         <form
@@ -177,13 +177,13 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
       {/* Search Results Area */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p className="empty-state">Searching across ThoughtShare…</p>
+          <p className="empty-state">Searching across Share Your Thoughts…</p>
         </div>
       ) : !searched ? (
         <div style={{ textAlign: 'center', padding: '48px 16px', background: 'var(--paper)', borderRadius: '20px', border: '1px solid var(--line)' }}>
           <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>🔎</span>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
-            Search anything on ThoughtShare
+            Search anything on Share Your Thoughts
           </h3>
           <p className="section-copy" style={{ margin: '0 auto', fontSize: '0.9rem', maxWidth: '38ch' }}>
             Type a username, keyword, phrase, or tap on suggested hashtags to discover insights.

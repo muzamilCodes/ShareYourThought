@@ -79,8 +79,7 @@ export function Navbar() {
       icon: '🔔',
       badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : null
     },
-    { href: profileHref, label: 'Profile', icon: '👤', authRequired: true },
-    { href: '/settings', label: 'Settings', icon: '⚙️', authRequired: true }
+    { href: profileHref, label: 'Profile', icon: '👤', authRequired: true }
   ];
 
   return (
@@ -93,7 +92,7 @@ export function Navbar() {
           {/* Brand Logo */}
           <Link href="/" className="sidebar-brand">
             <span className="brand-mark" />
-            <span className="brand-name">ThoughtShare</span>
+            <span className="brand-name">Share Your Thoughts</span>
           </Link>
 
           {/* Search Input Box */}
@@ -127,6 +126,17 @@ export function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Install App Button */}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
+              className="sidebar-nav-item"
+              style={{ width: '100%', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+            >
+              <span className="sidebar-nav-icon">📲</span>
+              <span className="sidebar-nav-label">Install App</span>
+            </button>
           </nav>
 
           {/* Prominent Create Post Button */}
@@ -197,10 +207,19 @@ export function Navbar() {
         <div className="mobile-header-inner">
           <Link href="/" className="sidebar-brand" style={{ padding: 0 }}>
             <span className="brand-mark" />
-            <span className="brand-name" style={{ fontSize: '1.15rem' }}>ThoughtShare</span>
+            <span className="brand-name" style={{ fontSize: '1.05rem' }}>Share Your Thoughts</span>
           </Link>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
+              className="button-ghost"
+              style={{ fontSize: '0.80rem', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--line)', fontWeight: 600 }}
+              title="Install App"
+            >
+              📲 Install
+            </button>
             <ThemeToggle compact />
           </div>
         </div>

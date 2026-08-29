@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { api, saveStoredSession } from '@/lib/api';
 import { useSession } from '@/hooks/useSession';
 import { fileToCompressedDataUrl } from '@/lib/imageUtils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 export default function SettingsPage() {
-  const { session, ready, setSession } = useSession();
+  const router = useRouter();
+  const { session, ready, setSession, logout } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'appearance'>('profile');
   
@@ -29,6 +32,23 @@ export default function SettingsPage() {
   const [forgotMessage, setForgotMessage] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingReset, setLoadingReset] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!session?.token || deletingAccount) return;
+    setDeletingAccount(true);
+    try {
+      await api.deleteAccount(session.token);
+      setShowDeleteModal(false);
+      logout();
+      router.push('/register');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not delete account. Please try again.');
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -122,8 +142,23 @@ export default function SettingsPage() {
     <div className="page container" style={{ maxWidth: '650px' }}>
       {/* Header */}
       <div style={{ marginBottom: '20px' }}>
+        <Link
+          href={`/profile/${session?.user?.username || ''}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.86rem',
+            color: 'var(--muted)',
+            marginBottom: '10px',
+            textDecoration: 'none',
+            fontWeight: 600
+          }}
+        >
+          ← Back to Profile
+        </Link>
         <h1 className="display-title" style={{ fontSize: '1.75rem', margin: '0 0 6px 0', color: 'var(--ink)' }}>
-          ⚙️ Settings
+          ⚙️ Profile & Account Settings
         </h1>
         <p className="section-copy" style={{ margin: 0, fontSize: '0.90rem' }}>
           Manage your personal profile, security preferences, and appearance.
@@ -502,35 +537,124 @@ export default function SettingsPage() {
               ) : null}
             </form>
           </div>
+
+          {/* Danger Zone: Delete Account */}
+          {session?.user && (
+            <div
+              style={{
+                background: 'var(--paper)',
+                padding: '24px',
+                borderRadius: '20px',
+                border: '1.5px solid rgba(239, 68, 68, 0.35)',
+                boxShadow: 'var(--shadow)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: '#ef4444' }}>
+                  Danger Zone — Delete Account
+                </h3>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                Permanently delete your account, published thoughts, comments, and direct messages. This action is irreversible and cannot be undone.
+              </p>
+              <button
+                type="button"
+                className="button-outline"
+                onClick={() => setShowDeleteModal(true)}
+                disabled={deletingAccount}
+                style={{
+                  alignSelf: 'flex-start',
+                  borderColor: '#ef4444',
+                  color: '#ef4444',
+                  fontWeight: 700,
+                  fontSize: '0.86rem',
+                  padding: '8px 18px',
+                  marginTop: '4px'
+                }}
+              >
+                {deletingAccount ? 'Deleting…' : '🗑️ Delete My Account'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB 3: APPEARANCE */}
       {activeTab === 'appearance' && (
-        <div
-          style={{
-            background: 'var(--paper)',
-            padding: '24px',
-            borderRadius: '20px',
-            border: '1px solid var(--line)',
-            boxShadow: 'var(--shadow)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px'
-          }}
-        >
-          <div>
-            <strong style={{ fontSize: '1rem', color: 'var(--ink)', display: 'block' }}>
-              Theme & Interface
-            </strong>
-            <span style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '2px', display: 'block' }}>
-              Toggle between Warm Editorial Light mode and Sleek Midnight Dark mode.
-            </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div
+            style={{
+              background: 'var(--paper)',
+              padding: '24px',
+              borderRadius: '20px',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px'
+            }}
+          >
+            <div>
+              <strong style={{ fontSize: '1rem', color: 'var(--ink)', display: 'block' }}>
+                Theme & Interface
+              </strong>
+              <span style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '2px', display: 'block' }}>
+                Toggle between Warm Editorial Light mode and Sleek Midnight Dark mode.
+              </span>
+            </div>
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
+
+          <div
+            style={{
+              background: 'var(--paper)',
+              padding: '24px',
+              borderRadius: '20px',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px'
+            }}
+          >
+            <div>
+              <strong style={{ fontSize: '1rem', color: 'var(--ink)', display: 'block' }}>
+                📲 Install Web App (PWA)
+              </strong>
+              <span style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '2px', display: 'block' }}>
+                Install on your Desktop, Android, or iPhone for fast offline access.
+              </span>
+            </div>
+            <button
+              type="button"
+              className="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
+              style={{ fontSize: '0.86rem', padding: '8px 18px', minHeight: 'auto', whiteSpace: 'nowrap' }}
+            >
+              Install App 📲
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Account Deletion Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Account Permanently?"
+        message="Are you completely sure? This will permanently delete your account, all your thoughts, comments, likes, messages, and profile data from Share Your Thoughts. This action cannot be recovered."
+        confirmText="Yes, Delete My Account"
+        cancelText="Cancel"
+        type="danger"
+        loading={deletingAccount}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 }

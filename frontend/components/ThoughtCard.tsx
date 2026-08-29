@@ -185,12 +185,20 @@ export function ThoughtCard({
       window.location.href = '/login';
       return;
     }
+    const prevLiked = liked;
+    const prevLikes = likes;
+    // Optimistic instant feedback
+    setLiked(!prevLiked);
+    setLikes(prevLiked ? Math.max(0, prevLikes - 1) : prevLikes + 1);
+
     try {
       const next = await api.likeThought(currentThought._id, token);
       setLiked(next.liked);
       setLikes(next.likes);
     } catch {
-      // ignore
+      // Revert if error occurs
+      setLiked(prevLiked);
+      setLikes(prevLikes);
     }
   };
 
@@ -199,12 +207,20 @@ export function ThoughtCard({
       window.location.href = '/login';
       return;
     }
+    const prevSaved = saved;
+    const prevSaves = saves;
+    // Optimistic instant feedback
+    setSaved(!prevSaved);
+    setSaves(prevSaved ? Math.max(0, prevSaves - 1) : prevSaves + 1);
+
     try {
       const next = await api.saveThought(currentThought._id, token);
       setSaved(next.saved);
       setSaves(next.saves);
     } catch {
-      // ignore
+      // Revert if error occurs
+      setSaved(prevSaved);
+      setSaves(prevSaves);
     }
   };
 

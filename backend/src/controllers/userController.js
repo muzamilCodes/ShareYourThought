@@ -1,5 +1,9 @@
 import User from '../models/User.js';
 import Thought from '../models/Thought.js';
+import Comment from '../models/Comment.js';
+import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
+import RefreshToken from '../models/RefreshToken.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { createNotification } from '../utils/notifications.js';
 
@@ -51,6 +55,42 @@ export const updateMe = asyncHandler(async (req, res) => {
   await user.save();
   const updated = await User.findById(user._id).select('-password');
   res.json({ user: safeUser(updated) });
+});
+
+export const deleteMe = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // 1. Delete all thoughts created by this user
+  await Thought.deleteMany({ author: userId });
+
+  // 2. Delete all comments created by this user
+  await Comment.deleteMany({ author: userId });
+
+  // 3. Remove this user from all other users' followers, following, and followRequests
+  await User.updateMany(
+    {},
+    {
+      $pull: {
+        followers: userId,
+        following: userId,
+        followRequests: userId
+      }
+    }
+  );
+
+  // 4. Remove this user's likes & saves from all remaining thoughts and comments
+  await Promise.all([
+    Thought.updateMany({}, { $pull: { likes: userId, saves: userId } }),
+    Comment.updateMany({}, { $pull: { likes: userId } }),
+    Message.deleteMany({ $or: [{ sender: userId }, { recipient: userId }] }),
+    Notification.deleteMany({ $or: [{ recipient: userId }, { actor: userId }] }),
+    RefreshToken.deleteMany({ user: userId })
+  ]);
+
+  // 5. Delete the user document
+  await User.findByIdAndDelete(userId);
+
+  res.json({ message: 'Account and all associated posts, comments, and messages deleted successfully.' });
 });
 
 export const searchUsers = asyncHandler(async (req, res) => {

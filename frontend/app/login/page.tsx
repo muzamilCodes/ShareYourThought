@@ -48,7 +48,7 @@ export default function LoginPage() {
 
           <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid var(--line)' }}>
             <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--muted)' }}>
-              New to ThoughtShare?{' '}
+              New to Share Your Thoughts?{' '}
               <Link href="/register" style={{ color: 'var(--ember)', fontWeight: 700 }}>
                 Create an account →
               </Link>

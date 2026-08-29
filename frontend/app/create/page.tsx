@@ -14,19 +14,13 @@ export default function CreatePage() {
   }, []);
 
   return (
-    <div className="page container">
-      <section className="page-frame">
-        <div className="page-frame-main">
-          <div className="mono eyebrow">Create Thought</div>
-          <h1 className="display-title display-title-xl">Publish something worth keeping.</h1>
-          <p className="section-copy section-copy-lg">Authenticated users can write a thought, attach an optional image URL, choose a category, and add hashtags before publishing.</p>
-          <CreateThought categories={categories} />
-        </div>
-        <aside className="page-frame-aside">
-          <div className="note-card"><div className="mono">Publishing tips</div><p className="note-copy">Keep the first sentence clear. Use hashtags sparingly. One strong idea is enough.</p></div>
-          <div className="note-card"><div className="mono">Categories</div><p className="note-copy">The backend stores structured categories so explore and trending can stay meaningful.</p></div>
-        </aside>
-      </section>
+    <div className="page container" style={{ maxWidth: '650px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h1 className="display-title" style={{ fontSize: '1.75rem', margin: '0 0 6px 0', color: 'var(--ink)' }}>
+          Publish something worth keeping.
+        </h1>
+      </div>
+      <CreateThought categories={categories} />
     </div>
   );
 }

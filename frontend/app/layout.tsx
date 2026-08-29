@@ -7,13 +7,13 @@ import { PwaManager } from '../components/PwaManager';
 import { RealtimeNotifications } from '../components/RealtimeNotifications';
 
 export const metadata: Metadata = {
-  title: 'ThoughtShare — Editorial Social Platform',
+  title: 'Share Your Thoughts — Editorial Social Platform',
   description: 'An authentic social platform for sharing thoughts, perspectives, and real conversation.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'ThoughtShare'
+    title: 'Share Your Thoughts'
   },
   icons: {
     icon: [

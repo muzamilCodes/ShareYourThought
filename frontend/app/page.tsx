@@ -57,14 +57,13 @@ export default function HomePage() {
       </div>
 
       {/* Mobile Quick Create Banner */}
-      <div className="container mobile-only" style={{ marginBottom: '16px', padding: '0 4px' }}>
+      <div className="container mobile-only" style={{ marginBottom: '16px', maxWidth: '650px', padding: '0 12px' }}>
         <Link
           href="/create"
           style={{
             display: 'flex',
-            flexDirection: 'row',
             alignItems: 'center',
-            gap: '12px',
+            gap: '10px',
             padding: '10px 14px',
             borderRadius: '20px',
             textDecoration: 'none',
@@ -72,7 +71,8 @@ export default function HomePage() {
             background: 'var(--paper)',
             border: '1px solid var(--line)',
             boxShadow: 'var(--shadow)',
-            flexWrap: 'nowrap'
+            width: '100%',
+            boxSizing: 'border-box'
           }}
         >
           <img
@@ -113,7 +113,7 @@ export default function HomePage() {
             className="button"
             style={{
               fontSize: '0.80rem',
-              padding: '6px 16px',
+              padding: '6px 14px',
               minHeight: 'auto',
               flexShrink: 0,
               borderRadius: '20px',

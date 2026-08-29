@@ -11,6 +11,17 @@ export function useSession() {
   useEffect(() => {
     setSession(readStoredSession());
     setReady(true);
+
+    const handleExpired = () => {
+      setSession(null);
+    };
+
+    window.addEventListener('auth-session-expired', handleExpired);
+    window.addEventListener('storage', handleExpired);
+    return () => {
+      window.removeEventListener('auth-session-expired', handleExpired);
+      window.removeEventListener('storage', handleExpired);
+    };
   }, []);
 
   const logout = () => {
