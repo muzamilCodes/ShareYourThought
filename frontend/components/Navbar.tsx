@@ -74,7 +74,7 @@ export function Navbar() {
               <Link className="button-ghost" href="/notifications" title="Notifications" style={{ padding: '8px 12px' }}>
                 🔔
               </Link>
-              <Link className="button-ghost" href="/profile" title="My Profile" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Link className="button-ghost" href={`/profile/${session.user.username}`} title="My Profile" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <span>👤</span>
                 <span>@{session.user.username}</span>
               </Link>
@@ -101,7 +101,7 @@ export function Navbar() {
               <Link href="/notifications" className="mobile-icon-btn" title="Notifications" onClick={() => setMobileMenuOpen(false)}>
                 🔔
               </Link>
-              <Link href="/profile" className="mobile-icon-btn" title="Profile" onClick={() => setMobileMenuOpen(false)}>
+              <Link href={`/profile/${session.user.username}`} className="mobile-icon-btn" title="Profile" onClick={() => setMobileMenuOpen(false)}>
                 👤
               </Link>
             </>
@@ -147,7 +147,7 @@ export function Navbar() {
             {ready && session ? (
               <>
                 <Link
-                  href="/profile"
+                  href={`/profile/${session.user.username}`}
                   className="button"
                   style={{ width: '100%', justifyContent: 'center' }}
                   onClick={() => setMobileMenuOpen(false)}

@@ -24,7 +24,8 @@ export default function ProfilePage() {
   const [followersList, setFollowersList] = useState<User[]>([]);
   const [followingList, setFollowingList] = useState<User[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following'>('thoughts');
+  const [savedThoughts, setSavedThoughts] = useState<Thought[]>([]);
+  const [activeTab, setActiveTab] = useState<'thoughts' | 'followers' | 'following' | 'saved'>('thoughts');
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async () => {
@@ -32,10 +33,11 @@ export default function ProfilePage() {
     setLoading(true);
 
     try {
-      const [profileRes, followersRes, followingRes] = await Promise.allSettled([
+      const [profileRes, followersRes, followingRes, savedRes] = await Promise.allSettled([
         api.getProfile(username, session?.token),
         api.getFollowers(username),
-        api.getFollowing(username)
+        api.getFollowing(username),
+        session?.token ? api.savedThoughts(session.token) : Promise.reject()
       ]);
 
       if (profileRes.status === 'fulfilled' && profileRes.value?.profile) {
@@ -51,6 +53,9 @@ export default function ProfilePage() {
       }
       if (followingRes.status === 'fulfilled') {
         setFollowingList(followingRes.value?.following || []);
+      }
+      if (savedRes.status === 'fulfilled') {
+        setSavedThoughts(savedRes.value?.thoughts || []);
       }
     } catch {
       setProfile(null);
@@ -92,6 +97,7 @@ export default function ProfilePage() {
 
   const handleThoughtDeleted = (deletedId: string) => {
     setThoughts((current) => current.filter((t) => t._id !== deletedId));
+    setSavedThoughts((current) => current.filter((t) => t._id !== deletedId));
   };
 
   if (loading) {
@@ -119,6 +125,7 @@ export default function ProfilePage() {
 
   const followersCount = followersList.length || (typeof profile.followers === 'number' ? profile.followers : profile.followers?.length || 0);
   const followingCount = followingList.length || (typeof profile.following === 'number' ? profile.following : profile.following?.length || 0);
+  const savedCount = savedThoughts.length || (typeof profile.savedThoughts === 'number' ? profile.savedThoughts : 0);
 
   return (
     <div className="page container">
@@ -164,6 +171,16 @@ export default function ProfilePage() {
               <span>✨</span>
               <span>Following ({followingCount})</span>
             </button>
+            {isSelf && (
+              <button
+                className={`category-pill ${activeTab === 'saved' ? 'is-active' : ''}`}
+                style={{ fontSize: '0.9rem', padding: '8px 18px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => setActiveTab('saved')}
+              >
+                <span>🔖</span>
+                <span>Saved ({savedCount})</span>
+              </button>
+            )}
           </div>
 
           {/* Tab 1: Thoughts */}
@@ -174,7 +191,16 @@ export default function ProfilePage() {
                 <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
               ))}
               {!thoughts.length ? (
-                <p className="empty-state">This user hasn't published any thoughts yet.</p>
+                <div style={{ textAlign: 'center', padding: '36px 0' }}>
+                  <p className="empty-state">This user hasn't published any thoughts yet.</p>
+                  {isSelf && (
+                    <div style={{ marginTop: '14px' }}>
+                      <Link href="/create" className="button">
+                        ✍️ Share Your First Thought
+                      </Link>
+                    </div>
+                  )}
+                </div>
               ) : null}
             </div>
           )}
@@ -262,8 +288,25 @@ export default function ProfilePage() {
               )}
             </div>
           )}
+
+          {/* Tab 4: Saved (Bookmarks) */}
+          {activeTab === 'saved' && isSelf && (
+            <div>
+              <SectionHeading eyebrow="Bookmarks" title="Thoughts You Saved" />
+              {savedThoughts.length ? (
+                <div className="profile-thoughts">
+                  {savedThoughts.map((thought) => (
+                    <ThoughtCard key={thought._id} thought={thought} onDeleted={handleThoughtDeleted} />
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-state">No saved thoughts yet.</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
     </div>
   );
 }
+
