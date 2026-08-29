@@ -21,7 +21,10 @@ function getTransporter() {
       auth: {
         user: env.smtpUser,
         pass: env.smtpPass
-      }
+      },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 6000
     });
   }
   return cachedTransporter;
