@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
+import dns from 'node:dns';
 import env from './env.js';
+
+// Configure DNS servers for MongoDB Atlas SRV connection string resolution
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch {
+  // Ignore in restricted environments
+}
 
 export default async function connectDB() {
   if (!env.mongoUri) {

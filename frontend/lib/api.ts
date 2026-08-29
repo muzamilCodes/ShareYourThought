@@ -1,6 +1,17 @@
 import type { AuthSession, Category, Comment, Notification, Thought, User } from '../types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+function getBaseUrl(): string {
+  let url = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api').trim();
+  // Strip trailing slashes
+  url = url.replace(/\/+$/, '');
+  // If base URL doesn't end with /api, append /api
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
+  }
+  return url;
+}
+
+const API_BASE_URL = getBaseUrl();
 
 export type ApiError = { message: string };
 
@@ -18,16 +29,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     headers.set('Authorization', `Bearer ${options.token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const fullUrl = `${API_BASE_URL}${normalizedPath}`;
+
+  const response = await fetch(fullUrl, {
     ...options,
     headers,
     cache: 'no-store'
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  let data: any = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text || `HTTP ${response.status} ${response.statusText}` };
+  }
+
   if (!response.ok) {
-    throw new Error(data.message || 'Request failed');
+    throw new Error(data.message || data.error || `Request failed (${response.status})`);
   }
   return data as T;
 }

@@ -19,24 +19,16 @@ import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
-// Flexible CORS for local development and cloud deployments
+// Flexible CORS for local development and cloud deployments (Vercel, Render, custom domains)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman) or matching client URLs
-      if (
-        !origin ||
-        env.clientUrl === '*' ||
-        origin === env.clientUrl ||
-        env.clientUrl.split(',').map((s) => s.trim()).includes(origin) ||
-        env.nodeEnv !== 'production'
-      ) {
-        callback(null, true);
-      } else {
-        callback(null, true);
-      }
+      // Allow all origins (browser requests from Vercel, localhost, etc.)
+      callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
   })
 );
 
@@ -74,30 +66,42 @@ app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 300,
+    limit: 500,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: 'Too many requests, please try again later' }
   })
 );
 
+// Root and health check routes
 app.get('/', (_req, res) => {
   res.json({ ok: true, service: 'ThoughtShare API is running', documentation: '/api/health' });
+});
+
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'thoughtshare-api', status: 'healthy' });
 });
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'thoughtshare-api', status: 'healthy' });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/thoughts', thoughtRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/likes', likeRoutes);
-app.use('/api/follows', followRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/reports', reportRoutes);
+// Mount application routes
+const mountAppRoutes = (prefix = '') => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/users`, userRoutes);
+  app.use(`${prefix}/thoughts`, thoughtRoutes);
+  app.use(`${prefix}/comments`, commentRoutes);
+  app.use(`${prefix}/likes`, likeRoutes);
+  app.use(`${prefix}/follows`, followRoutes);
+  app.use(`${prefix}/notifications`, notificationRoutes);
+  app.use(`${prefix}/categories`, categoryRoutes);
+  app.use(`${prefix}/reports`, reportRoutes);
+};
+
+// Mount both `/api/...` and fallback `...` routes so requests never 404
+mountAppRoutes('/api');
+mountAppRoutes('');
 
 app.use(notFoundHandler);
 app.use(errorHandler);
