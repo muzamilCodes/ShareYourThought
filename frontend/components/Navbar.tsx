@@ -201,16 +201,28 @@ export function Navbar() {
       </aside>
 
       {/* =========================================================
-          MOBILE TOP COMPACT HEADER (WITH TOP-RIGHT ALERTS BUTTON)
+          MOBILE TOP COMPACT HEADER (FULL-WIDTH EDGE-TO-EDGE)
       ========================================================= */}
-      <header className="mobile-header mobile-only">
-        <div className="mobile-header-inner">
-          <Link href="/" className="sidebar-brand" style={{ padding: 0 }}>
+      <header className="mobile-header mobile-only" style={{ width: '100%', boxSizing: 'border-box' }}>
+        <div
+          className="mobile-header-inner"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            width: '100%',
+            padding: '8px 16px',
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Brand Logo on the Left Edge */}
+          <Link href="/" className="sidebar-brand" style={{ padding: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="brand-mark" />
-            <span className="brand-name" style={{ fontSize: '1.05rem' }}>Share Your Thoughts</span>
+            <span className="brand-name" style={{ fontSize: '1.05rem', fontWeight: 800 }}>Share Your Thoughts</span>
           </Link>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
+          {/* Right Action Group on the Far-Right Corner */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
             <ThemeToggle compact />
 
             {/* Absolute Far-Right Corner Alert / Notification Icon */}
