@@ -201,7 +201,7 @@ export function Navbar() {
       </aside>
 
       {/* =========================================================
-          MOBILE TOP COMPACT HEADER
+          MOBILE TOP COMPACT HEADER (WITH TOP-RIGHT ALERTS BUTTON)
       ========================================================= */}
       <header className="mobile-header mobile-only">
         <div className="mobile-header-inner">
@@ -210,17 +210,54 @@ export function Navbar() {
             <span className="brand-name" style={{ fontSize: '1.05rem' }}>Share Your Thoughts</span>
           </Link>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('trigger-pwa-install'))}
-              className="button-ghost"
-              style={{ fontSize: '0.80rem', padding: '4px 10px', borderRadius: '12px', border: '1px solid var(--line)', fontWeight: 600 }}
-              title="Install App"
-            >
-              📲 Install
-            </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: 'auto' }}>
             <ThemeToggle compact />
+
+            {/* Absolute Far-Right Corner Alert / Notification Icon */}
+            <Link
+              href="/notifications"
+              style={{
+                position: 'relative',
+                padding: '6px',
+                fontSize: '1.35rem',
+                border: 'none',
+                background: 'transparent',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--ink)',
+                cursor: 'pointer'
+              }}
+              title="Notifications"
+              aria-label="Notifications"
+            >
+              🔔
+              {unreadCount > 0 ? (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '0px',
+                    right: '0px',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    minWidth: '16px',
+                    height: '16px',
+                    borderRadius: '999px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 3px',
+                    border: '2px solid var(--paper)',
+                    lineHeight: 1
+                  }}
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              ) : null}
+            </Link>
           </div>
         </div>
       </header>

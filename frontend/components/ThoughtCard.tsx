@@ -76,8 +76,7 @@ export function ThoughtCard({
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Audio Reader & Share Modal & Reaction states
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  // Share Modal & Reaction states
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -99,25 +98,6 @@ export function ThoughtCard({
         currentThought.author?.id === currentUserId ||
         (typeof currentThought.author === 'string' && currentThought.author === currentUserId))
   );
-
-  // Speech synthesis audio narrator
-  const toggleSpeech = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const cleanText = currentThought.content.replace(/#\w+/g, '');
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
-  };
 
   const handleSelectReaction = (emoji: string) => {
     setSelectedReaction(emoji);
@@ -727,18 +707,6 @@ export function ThoughtCard({
               >
                 <span className="insta-action-icon">↗️</span>
                 <span>{shares}</span>
-              </button>
-
-              {/* Text to Speech Voice Reader */}
-              <button
-                type="button"
-                className={`thought-action insta-action-btn ${isSpeaking ? 'is-active' : ''}`}
-                onClick={toggleSpeech}
-                title={isSpeaking ? 'Stop listening' : 'Listen to thought'}
-                style={{ color: isSpeaking ? 'var(--ember)' : 'inherit' }}
-              >
-                <span className="insta-action-icon">{isSpeaking ? '⏸️' : '🔊'}</span>
-                <span style={{ fontSize: '0.78rem' }}>{isSpeaking ? 'Playing…' : 'Listen'}</span>
               </button>
             </div>
 

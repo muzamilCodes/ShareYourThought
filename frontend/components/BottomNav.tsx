@@ -32,6 +32,20 @@ export function BottomNav() {
     return () => window.removeEventListener('unread-count-updated', handleCount);
   }, [ready, session?.token, pathname]);
 
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+  useEffect(() => {
+    if (ready && session?.token) {
+      api.getUnreadMessagesCount(session.token)
+        .then((res) => {
+          if (typeof res?.unreadCount === 'number') {
+            setUnreadMessagesCount(res.unreadCount);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [ready, session?.token, pathname]);
+
   const profileHref = session?.user?.username ? `/profile/${session.user.username}` : '/profile';
   const userAvatar = session?.user?.avatar;
 
@@ -59,14 +73,8 @@ export function BottomNav() {
       href: '/messages',
       label: 'Chat',
       icon: '💬',
+      badge: unreadMessagesCount > 0 ? (unreadMessagesCount > 9 ? '9+' : String(unreadMessagesCount)) : null,
       isActive: pathname.startsWith('/messages')
-    },
-    {
-      href: '/notifications',
-      label: 'Alerts',
-      icon: '🔔',
-      badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null,
-      isActive: pathname === '/notifications'
     },
     {
       href: profileHref,
