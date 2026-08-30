@@ -225,7 +225,30 @@ export function Navbar() {
           </Link>
 
           {/* Right Action Group on the Far-Right Corner */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+            {session?.user?.role === 'admin' ? (
+              <Link
+                href="/admin"
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '10px',
+                  background: pathname.startsWith('/admin') ? 'var(--ember)' : 'var(--dark-soft)',
+                  color: pathname.startsWith('/admin') ? '#ffffff' : 'var(--ink)',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  border: '1px solid var(--line)'
+                }}
+                title="Admin Command Center"
+              >
+                <span>🛡️</span>
+                <span>Admin</span>
+              </Link>
+            ) : null}
+
             <ThemeToggle compact />
 
             {/* Mobile Header Logout Button */}

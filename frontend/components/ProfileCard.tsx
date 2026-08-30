@@ -93,6 +93,15 @@ export function ProfileCard({
 
         {isSelf ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {profile.role === 'admin' && (
+              <Link
+                href="/admin"
+                className="button-outline"
+                style={{ fontSize: '0.84rem', padding: '6px 12px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ember)', fontWeight: 700 }}
+              >
+                <span>🛡️</span> Admin Panel
+              </Link>
+            )}
             <Link
               href="/settings"
               className="button-outline"
