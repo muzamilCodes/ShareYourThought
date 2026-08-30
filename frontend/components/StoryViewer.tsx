@@ -36,6 +36,7 @@ function formatRelativeTime(dateStr: string) {
 
 export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryViewerProps) {
   const { session } = useSession();
+  const [groups, setGroups] = useState<AuthorStoryGroup[]>(storyGroups);
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
   const [storyIndex, setStoryIndex] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -45,8 +46,14 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
   const [floatingReaction, setFloatingReaction] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const currentGroup = storyGroups[groupIndex] || storyGroups[0];
+  useEffect(() => {
+    setGroups(storyGroups);
+  }, [storyGroups]);
+
+  const currentGroup = groups[groupIndex] || groups[0];
   const stories = currentGroup?.thoughts || [];
   const currentStory = stories[storyIndex] || stories[0];
 
@@ -96,7 +103,7 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
 
   // Story progress timer
   useEffect(() => {
-    if (isPaused || !currentStory) return;
+    if (isPaused || showDeleteConfirm || !currentStory) return;
 
     const timer = setInterval(() => {
       setProgress((prev) => {
@@ -109,7 +116,7 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
     }, INTERVAL);
 
     return () => clearInterval(timer);
-  }, [isPaused, currentStory, handleNext]);
+  }, [isPaused, showDeleteConfirm, currentStory, handleNext]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -168,6 +175,63 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
       // ignore
     } finally {
       setSendingReply(false);
+    }
+  };
+
+  const currentUserId = session?.user?._id || session?.user?.id;
+  const currentUsername = session?.user?.username?.toLowerCase();
+  const author = currentStory?.author;
+  const authorId = typeof author === 'string' ? author : author?._id || (author as any)?.id;
+  const authorUsername = typeof author === 'object' ? author?.username?.toLowerCase() : '';
+  const isSuperadmin = session?.user?.role === 'admin' || currentUsername === 'burhan';
+
+  const canDelete =
+    Boolean(session?.user) &&
+    (Boolean(currentGroup?.isSelf) ||
+      (Boolean(currentUserId) && Boolean(authorId) && authorId === currentUserId) ||
+      (Boolean(currentUsername) && Boolean(authorUsername) && currentUsername === authorUsername) ||
+      isSuperadmin);
+
+  const confirmDeleteStory = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const storyId = currentStory?._id || (currentStory as any)?.id;
+    if (!storyId || !session?.token) return;
+
+    setIsDeleting(true);
+    try {
+      await api.deleteThought(storyId, session.token);
+      window.dispatchEvent(new Event('story-created'));
+
+      const nextGroups = groups
+        .map((g, idx) => {
+          if (idx !== groupIndex) return g;
+          return {
+            ...g,
+            thoughts: g.thoughts.filter((t) => (t._id || (t as any).id) !== storyId)
+          };
+        })
+        .filter((g) => g.thoughts.length > 0);
+
+      setShowDeleteConfirm(false);
+
+      if (nextGroups.length === 0) {
+        onClose();
+      } else {
+        setGroups(nextGroups);
+        if (groupIndex >= nextGroups.length) {
+          setGroupIndex(nextGroups.length - 1);
+          setStoryIndex(0);
+        } else {
+          const curCount = nextGroups[groupIndex].thoughts.length;
+          setStoryIndex((prev) => Math.min(prev, curCount - 1));
+        }
+        setProgress(0);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete story. Please try again.');
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -238,6 +302,39 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
           </div>
 
           <div className="story-header-actions">
+            {/* Delete Story Button */}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(true);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                disabled={isDeleting}
+                title="Delete this story"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.45)',
+                  border: '1px solid rgba(239, 68, 68, 0.8)',
+                  color: '#ffffff',
+                  borderRadius: '20px',
+                  padding: '4px 12px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backdropFilter: 'blur(6px)',
+                  zIndex: 20
+                }}
+              >
+                <span>🗑️</span>
+                <span>Delete</span>
+              </button>
+            )}
+
             {isPaused && <span className="story-paused-pill">Paused</span>}
             <button
               type="button"
@@ -246,6 +343,8 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
                 e.stopPropagation();
                 onClose();
               }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               title="Close story (Esc)"
               aria-label="Close"
             >
@@ -253,6 +352,74 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
             </button>
           </div>
         </div>
+
+        {/* Custom In-Story Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 100,
+              backgroundColor: 'rgba(0,0,0,0.85)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px',
+              textAlign: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>🗑️</div>
+            <strong style={{ fontSize: '1.15rem', color: '#ffffff', marginBottom: '6px' }}>
+              Delete This Story Spark?
+            </strong>
+            <p style={{ fontSize: '0.84rem', color: 'rgba(255,255,255,0.75)', margin: '0 0 20px 0', maxWidth: '240px' }}>
+              This 24-hour story will be permanently removed from your profile and story tray.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '220px' }}>
+              <button
+                type="button"
+                onClick={confirmDeleteStory}
+                disabled={isDeleting}
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '11px',
+                  fontWeight: 700,
+                  fontSize: '0.90rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {isDeleting ? 'Deleting Story…' : 'Yes, Delete Story'}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(false);
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '10px',
+                  fontWeight: 600,
+                  fontSize: '0.86rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Story Visual Body */}
         <div className="story-body-content">

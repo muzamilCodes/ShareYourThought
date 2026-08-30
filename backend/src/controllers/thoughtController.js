@@ -132,7 +132,7 @@ async function applyPrivateFilter(filters, req) {
 
 export const getThoughts = asyncHandler(async (req, res) => {
   const { page, limit, skip } = paginate(req.query);
-  const filters = {};
+  const filters = { isStory: { $ne: true } };
   if (req.query.category && req.query.category !== 'all') {
     filters.category = String(req.query.category).toLowerCase();
   }
@@ -277,7 +277,9 @@ export const updateThought = asyncHandler(async (req, res) => {
 export const deleteThought = asyncHandler(async (req, res) => {
   const thought = await Thought.findById(req.params.id);
   if (!thought) return res.status(404).json({ message: 'Thought not found' });
-  if (thought.author.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  const thoughtAuthorId = thought.author?._id ? thought.author._id.toString() : (thought.author ? thought.author.toString() : '');
+  const isSuperadmin = req.user.role === 'admin' || req.user.username === 'burhan';
+  if (thoughtAuthorId !== req.user._id.toString() && !isSuperadmin) {
     return res.status(403).json({ message: 'You can only delete your own thought' });
   }
 
