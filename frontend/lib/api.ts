@@ -151,6 +151,8 @@ export const api = {
     apiFetch<{ comment: Comment }>(`/comments/thoughts/${thoughtId}`, { method: 'POST', token, body: JSON.stringify(payload) }),
   likeComment: (id: string, token: string) => apiFetch<{ liked: boolean; likes: number }>(`/likes/comments/${id}`, { method: 'POST', token }),
   searchUsers: (q: string) => apiFetch<{ users: User[] }>(`/users/search?q=${encodeURIComponent(q)}`),
+  getSuggestedUsers: (token?: string) =>
+    apiFetch<{ users: (User & { isFollowing?: boolean })[] }>('/users/suggested', { token }),
   getProfile: (username: string, token?: string) =>
     apiFetch<{ profile: User; thoughts: Thought[]; isFollowing: boolean; isRequested?: boolean; isPrivateLocked?: boolean }>(
       `/users/${username}`,

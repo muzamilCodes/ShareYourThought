@@ -1,18 +1,19 @@
-'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
 import { useSession } from '../hooks/useSession';
 import { StoryViewer, type AuthorStoryGroup } from './StoryViewer';
+import { StoryCreatorModal } from './StoryCreatorModal';
 import type { Thought } from '../types';
 
 interface StoryTrayProps {
   thoughts?: Thought[];
+  onRefresh?: () => void;
 }
 
-export function StoryTray({ thoughts = [] }: StoryTrayProps) {
+export function StoryTray({ thoughts = [], onRefresh }: StoryTrayProps) {
   const { session } = useSession();
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+  const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 
   // Group thoughts by author
   const storyGroups: AuthorStoryGroup[] = [];
@@ -98,7 +99,7 @@ export function StoryTray({ thoughts = [] }: StoryTrayProps) {
                 if (hasOwnStories) {
                   setActiveStoryIndex(0);
                 } else {
-                  window.location.href = '/create';
+                  setIsCreatorOpen(true);
                 }
               }}
               style={{ cursor: 'pointer' }}
@@ -108,14 +109,18 @@ export function StoryTray({ thoughts = [] }: StoryTrayProps) {
                 alt={session?.user?.name || 'Your Story'}
                 className="story-avatar"
               />
-              <Link
-                href="/create"
+              <button
+                type="button"
                 className="story-add-badge"
                 title="Create new story"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCreatorOpen(true);
+                }}
+                style={{ cursor: 'pointer', border: 'none' }}
               >
                 +
-              </Link>
+              </button>
             </div>
             <span className="story-username">Your Story</span>
           </div>
@@ -156,6 +161,16 @@ export function StoryTray({ thoughts = [] }: StoryTrayProps) {
           onClose={() => setActiveStoryIndex(null)}
         />
       ) : null}
+
+      {/* Quick Story Creator Modal */}
+      <StoryCreatorModal
+        isOpen={isCreatorOpen}
+        onClose={() => setIsCreatorOpen(false)}
+        onStoryCreated={() => {
+          if (onRefresh) onRefresh();
+          else window.location.reload();
+        }}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import {
   getMe,
   getProfile,
   getSavedThoughts,
+  getSuggestedUsers,
   searchUsers,
   updateMe
 } from '../controllers/userController.js';
@@ -16,6 +17,7 @@ router.get('/me', protect, getMe);
 router.patch('/me', protect, updateMe);
 router.delete('/me', protect, deleteMe);
 router.get('/search', searchUsers);
+router.get('/suggested', optionalAuth, getSuggestedUsers);
 router.get('/saved/thoughts', protect, getSavedThoughts);
 router.get('/:username/followers', optionalAuth, getFollowers);
 router.get('/:username/following', optionalAuth, getFollowing);

@@ -106,6 +106,27 @@ export const searchUsers = asyncHandler(async (req, res) => {
   res.json({ users: users.map(safeUser) });
 });
 
+export const getSuggestedUsers = asyncHandler(async (req, res) => {
+  const currentUserId = req.user?._id;
+  const filter = currentUserId ? { _id: { $ne: currentUserId } } : {};
+  const users = await User.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(8)
+    .select('-password');
+
+  const currentUserIdStr = currentUserId ? currentUserId.toString() : '';
+  const result = users.map((u) => {
+    const isFollowing = currentUserIdStr
+      ? (u.followers || []).some((id) => id.toString() === currentUserIdStr)
+      : false;
+    return {
+      ...safeUser(u),
+      isFollowing
+    };
+  });
+  res.json({ users: result });
+});
+
 export const getProfile = asyncHandler(async (req, res) => {
   const profile = await User.findOne({ username: req.params.username.toLowerCase() }).select('-password');
   if (!profile) return res.status(404).json({ message: 'Profile not found' });

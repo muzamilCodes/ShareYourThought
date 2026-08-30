@@ -7,6 +7,7 @@ import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
 import { FeedSkeleton } from '../components/SkeletonLoader';
 import { StoryTray } from '../components/StoryTray';
+import { InstagramRightRail } from '../components/InstagramRightRail';
 import { useSession } from '../hooks/useSession';
 import { api } from '../lib/api';
 import type { Category, Thought } from '../types';
@@ -21,7 +22,7 @@ export default function HomePage() {
 
   const fetchFeed = (sortMode: 'following' | 'trending' | 'newest' | 'popular') => {
     setLoading(true);
-    api.getThoughts({ sort: sortMode, limit: 16 }, session?.token)
+    api.getThoughts({ sort: sortMode, limit: 20 }, session?.token)
       .then((feed) => {
         setThoughts(feed.thoughts || []);
         setTotalCount(feed.total || 0);
@@ -51,39 +52,58 @@ export default function HomePage() {
 
   return (
     <div className="page">
-      {/* Instagram-Style Story Sparks Tray */}
-      <div className="container" style={{ maxWidth: '650px', marginTop: '12px' }}>
-        <StoryTray thoughts={thoughts} />
-      </div>
+      <div className="insta-feed-layout">
+        {/* =========================================================
+            CENTER MAIN FEED COLUMN (INSTAGRAM SINGLE COLUMN STREAM)
+        ========================================================= */}
+        <div className="insta-main-column">
+          {/* Instagram-Style Story Sparks Tray */}
+          <div style={{ marginBottom: '16px' }}>
+            <StoryTray thoughts={thoughts} />
+          </div>
 
-      {/* Mobile Quick Create Banner */}
-      <div className="mobile-create-wrapper mobile-only">
-        <Link href="/create" className="mobile-create-bar">
-          <img
-            src={
-              session?.user?.avatar ||
-              (session?.user?.name
-                ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
-                : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
-            }
-            alt={session?.user?.name || 'You'}
-            className="mobile-create-avatar"
-          />
-          <span className="mobile-create-placeholder">
-            What&apos;s on your mind? Share a thought…
-          </span>
-          <span className="mobile-create-btn">
-            Post ✍️
-          </span>
-        </Link>
-      </div>
+          {/* Mobile Quick Create Banner */}
+          <div className="mobile-create-wrapper mobile-only">
+            <Link href="/create" className="mobile-create-bar">
+              <img
+                src={
+                  session?.user?.avatar ||
+                  (session?.user?.name
+                    ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
+                    : 'https://api.dicebear.com/7.x/initials/svg?seed=User')
+                }
+                alt={session?.user?.name || 'You'}
+                className="mobile-create-avatar"
+              />
+              <span className="mobile-create-placeholder">
+                What&apos;s on your mind? Share a thought…
+              </span>
+              <span className="mobile-create-btn">
+                Post ✍️
+              </span>
+            </Link>
+          </div>
 
-      {/* Main Thought Feed Showcase with Sorting Tabs */}
-      <section className="section">
-        <div className="container" style={{ maxWidth: '650px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-            <h2 className="display-title" style={{ fontSize: '1.4rem', margin: 0 }}>
-              {activeSort === 'following' ? '👥 Following Feed' : activeSort === 'trending' ? '🔥 Trending Feed' : activeSort === 'popular' ? '🏆 Most Liked' : '⚡ Latest Feed'}
+          {/* Feed Filter Sorting Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px',
+              marginBottom: '16px',
+              padding: '0 2px'
+            }}
+          >
+            <h2 className="display-title" style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800 }}>
+              {activeSort === 'following'
+                ? '👥 Following Feed'
+                : activeSort === 'trending'
+                ? '🔥 Trending Feed'
+                : activeSort === 'popular'
+                ? '🏆 Most Liked'
+                : '⚡ Latest Feed'}
             </h2>
 
             {/* Feed Sort Tabs */}
@@ -121,6 +141,7 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Main Feed Thought Posts Stream */}
           {loading ? (
             <FeedSkeleton count={4} />
           ) : thoughts.length ? (
@@ -139,7 +160,15 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '48px 0', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '48px 16px',
+                background: 'var(--paper)',
+                borderRadius: '20px',
+                border: '1px solid var(--line)'
+              }}
+            >
               <p className="empty-state">No thoughts found in this view yet.</p>
               <div style={{ marginTop: '16px' }}>
                 <Link href="/create" className="button">
@@ -148,34 +177,42 @@ export default function HomePage() {
               </div>
             </div>
           )}
-        </div>
-      </section>
 
-      {/* Community Categories */}
-      <section className="section">
-        <div className="container">
-          <div className="community-card">
-            <div className="section-top">
-              <div>
-                <div className="mono">Community Topics</div>
-                <h2 className="display-title display-title-xl">Explore perspectives across categories.</h2>
+          {/* Community Topics Quick Explorer */}
+          {categories.length ? (
+            <div
+              style={{
+                marginTop: '28px',
+                padding: '18px',
+                background: 'var(--paper)',
+                borderRadius: '20px',
+                border: '1px solid var(--line)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--ink)' }}>
+                  🏷️ Popular Topics
+                </span>
+                <Link href="/explore" style={{ fontSize: '0.78rem', color: 'var(--ember)', fontWeight: 700, textDecoration: 'none' }}>
+                  Explore all →
+                </Link>
               </div>
-              <Link href="/create" className="button">
-                ✍️ Share a Thought
-              </Link>
-            </div>
-            {categories.length ? (
-              <div className="category-row" style={{ marginTop: '24px' }}>
-                {categories.map((cat) => (
+              <div className="category-row">
+                {categories.slice(0, 8).map((cat) => (
                   <Link key={cat.slug} href={`/explore?category=${cat.slug}`} className="category-pill">
                     #{cat.name} ({cat.thoughtCount || 0})
                   </Link>
                 ))}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
-      </section>
+
+        {/* =========================================================
+            RIGHT SIDEBAR RAIL (SUGGESTED CREATORS & PROFILE SWITCH)
+        ========================================================= */}
+        <InstagramRightRail />
+      </div>
     </div>
   );
 }
