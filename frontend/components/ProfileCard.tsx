@@ -9,6 +9,7 @@ interface ProfileCardProps {
   isRequested?: boolean;
   onToggleFollow?: () => void;
   isSelf?: boolean;
+  onLogout?: () => void;
   activeTab?: 'thoughts' | 'followers' | 'following' | 'saved';
   onTabChange?: (tab: 'thoughts' | 'followers' | 'following' | 'saved') => void;
   thoughtsCount?: number;
@@ -23,6 +24,7 @@ export function ProfileCard({
   isRequested = false,
   onToggleFollow,
   isSelf = false,
+  onLogout,
   activeTab = 'thoughts',
   onTabChange,
   thoughtsCount = 0,
@@ -90,13 +92,36 @@ export function ProfileCard({
         </div>
 
         {isSelf ? (
-          <Link
-            href="/settings"
-            className="button-outline"
-            style={{ fontSize: '0.86rem', padding: '6px 16px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}
-          >
-            <span>⚙️</span> Edit Profile & Settings
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Link
+              href="/settings"
+              className="button-outline"
+              style={{ fontSize: '0.86rem', padding: '6px 14px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <span>⚙️</span> Settings
+            </Link>
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="button-ghost"
+                style={{
+                  fontSize: '0.84rem',
+                  padding: '6px 12px',
+                  minHeight: 'auto',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Log Out of your account"
+              >
+                <span>🚪</span> Log Out
+              </button>
+            )}
+          </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Link

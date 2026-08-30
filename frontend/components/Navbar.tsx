@@ -226,30 +226,30 @@ export function Navbar() {
 
           {/* Right Action Group on the Far-Right Corner */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-            {session?.user?.role === 'admin' && (
-              <Link
-                href="/admin"
+            <ThemeToggle compact />
+
+            {/* Mobile Header Logout Button */}
+            {ready && session ? (
+              <button
+                type="button"
+                onClick={handleLogout}
                 style={{
-                  padding: '5px 10px',
-                  borderRadius: '10px',
-                  background: pathname.startsWith('/admin') ? 'var(--ember)' : 'var(--dark-soft)',
-                  color: pathname.startsWith('/admin') ? '#ffffff' : 'var(--ink)',
-                  fontSize: '0.80rem',
-                  fontWeight: 800,
-                  textDecoration: 'none',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '1.22rem',
+                  cursor: 'pointer',
+                  padding: '4px',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  border: '1px solid var(--line)'
+                  justifyContent: 'center',
+                  color: 'var(--ink)'
                 }}
-                title="Admin Command Center"
+                title="Log Out"
+                aria-label="Log Out"
               >
-                <span>🛡️</span>
-                <span>Admin</span>
-              </Link>
-            )}
-
-            <ThemeToggle compact />
+                🚪
+              </button>
+            ) : null}
 
             {/* Absolute Far-Right Corner Alert / Notification Icon */}
             <Link

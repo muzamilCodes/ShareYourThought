@@ -14,7 +14,7 @@ export default function UserProfilePage() {
   const rawUsername = params?.username as string | undefined;
   const username = rawUsername ? decodeURIComponent(rawUsername).toLowerCase() : '';
 
-  const { session, ready } = useSession();
+  const { session, ready, logout } = useSession();
   const [profile, setProfile] = useState<User | null>(null);
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [followersList, setFollowersList] = useState<User[]>([]);
@@ -141,6 +141,7 @@ export default function UserProfilePage() {
           isRequested={isRequested}
           onToggleFollow={toggleFollow}
           isSelf={isSelf}
+          onLogout={logout}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           thoughtsCount={isPrivateLocked ? 0 : thoughts.length}
