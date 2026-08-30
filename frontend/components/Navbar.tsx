@@ -179,10 +179,24 @@ export function Navbar() {
                   type="button"
                   onClick={handleLogout}
                   className="button-ghost"
-                  style={{ padding: '6px 8px', fontSize: '0.95rem' }}
-                  title="Logout"
+                  style={{ padding: '6px 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}
+                  title="Log Out"
+                  aria-label="Log Out"
                 >
-                  🚪
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -251,7 +265,7 @@ export function Navbar() {
 
             <ThemeToggle compact />
 
-            {/* Mobile Header Logout Button */}
+            {/* Mobile Header Logout Button with Modern SVG Icon */}
             {ready && session ? (
               <button
                 type="button"
@@ -259,18 +273,31 @@ export function Navbar() {
                 style={{
                   background: 'transparent',
                   border: 'none',
-                  fontSize: '1.22rem',
                   cursor: 'pointer',
-                  padding: '4px',
+                  padding: '6px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--ink)'
+                  color: 'var(--ink)',
+                  borderRadius: '8px'
                 }}
                 title="Log Out"
                 aria-label="Log Out"
               >
-                🚪
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
               </button>
             ) : null}
 

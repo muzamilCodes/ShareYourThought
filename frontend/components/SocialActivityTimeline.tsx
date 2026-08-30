@@ -48,7 +48,7 @@ export function SocialActivityTimeline({
     return item.engagement || 0;
   };
 
-  const maxVal = Math.max(...daysData.map(getMetricVal), 4);
+  const maxVal = Math.max(...(daysData || []).map((d) => Number(getMetricVal(d)) || 0), 4);
 
   const metricLabel =
     selectedMetric === 'users'

@@ -271,7 +271,9 @@ export default function AdminPage() {
       isOpen: true,
       title: 'Delete Thought Post?',
       message: `Permanently delete this thought and its comments by ${
-        typeof thought.author === 'object' ? thought.author.name : 'Author'
+        thought.author && typeof thought.author === 'object' && 'name' in thought.author && thought.author.name
+          ? thought.author.name
+          : 'Creator'
       }?`,
       confirmText: 'Delete Post',
       type: 'danger',
@@ -741,31 +743,37 @@ export default function AdminPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {(thoughts.length > 0 ? thoughts.slice(0, 6) : (stats?.recentThoughts || [])).map((t) => (
-                <div
-                  key={t._id}
-                  style={{
-                    padding: '10px 14px',
-                    background: 'var(--dark-soft)',
-                    borderRadius: '14px',
-                    fontSize: '0.86rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--ink)', fontSize: '0.80rem' }}>
-                      {typeof t.author === 'object' ? `@${t.author.username}` : 'Author'}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>#{t.category}</span>
+              {(thoughts.length > 0 ? thoughts.slice(0, 6) : (stats?.recentThoughts || [])).map((t) => {
+                if (!t) return null;
+                const author = t.author && typeof t.author === 'object' ? t.author : null;
+                const authorUsername = author?.username || 'user';
+
+                return (
+                  <div
+                    key={t._id}
+                    style={{
+                      padding: '10px 14px',
+                      background: 'var(--dark-soft)',
+                      borderRadius: '14px',
+                      fontSize: '0.86rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--ink)', fontSize: '0.80rem' }}>
+                        @{authorUsername}
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>#{t.category || 'general'}</span>
+                    </div>
+                    <p style={{ margin: '0 0 6px 0', color: 'var(--ink)', lineHeight: 1.4 }}>
+                      {t.content && t.content.length > 90 ? `${t.content.slice(0, 90)}…` : t.content || ''}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--muted)' }}>
+                      <span>👁️ {t.viewsCount || 0} · 💬 {t.commentsCount || 0}</span>
+                      {t.featured && <span style={{ color: 'var(--ember)', fontWeight: 700 }}>⭐ Featured</span>}
+                    </div>
                   </div>
-                  <p style={{ margin: '0 0 6px 0', color: 'var(--ink)', lineHeight: 1.4 }}>
-                    {t.content.length > 90 ? `${t.content.slice(0, 90)}…` : t.content}
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--muted)' }}>
-                    <span>👁️ {t.viewsCount || 0} · 💬 {t.commentsCount || 0}</span>
-                    {t.featured && <span style={{ color: 'var(--ember)', fontWeight: 700 }}>⭐ Featured</span>}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1104,13 +1112,13 @@ export default function AdminPage() {
           {thoughts.length ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {thoughts.map((t) => {
-                const author = t.author;
-                const authorName = typeof author === 'object' ? author.name : 'Creator';
-                const authorUsername = typeof author === 'object' ? author.username : 'user';
+                if (!t) return null;
+                const author = t.author && typeof t.author === 'object' ? t.author : null;
+                const authorName = author?.name || 'Creator';
+                const authorUsername = author?.username || 'user';
                 const authorAvatar =
-                  typeof author === 'object' && author.avatar
-                    ? author.avatar
-                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
+                  author?.avatar ||
+                  `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`;
 
                 return (
                   <div
