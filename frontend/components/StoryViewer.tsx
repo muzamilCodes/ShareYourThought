@@ -425,6 +425,13 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
         <div className="story-body-content">
           {currentStory.imageUrl ? (
             <div className="story-media-wrapper">
+              {/* Blurred Ambient Backdrop Fill */}
+              <img
+                src={currentStory.imageUrl}
+                alt="Story backdrop"
+                className="story-media-backdrop-blur"
+              />
+              {/* Crisp Full Uncropped Foreground Image */}
               <img
                 src={currentStory.imageUrl}
                 alt="Story visual"
