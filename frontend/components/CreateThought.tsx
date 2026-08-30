@@ -30,6 +30,7 @@ export function CreateThought({
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
+  const [isStory, setIsStory] = useState(false);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
@@ -120,13 +121,15 @@ export function CreateThought({
     try {
       const payload = {
         ...form,
-        category: finalCategory
+        category: finalCategory,
+        isStory
       };
       const res = await api.createThought(payload, session.token);
       setStatus('Published successfully!');
       setForm({ content: '', imageUrl: '', category: categories[0]?.name || 'Life', hashtags: '' });
       setIsCustomCategory(false);
       setCustomCategory('');
+      setIsStory(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
       if (onSuccess) {
@@ -475,6 +478,42 @@ export function CreateThought({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Story Spark Toggle Option */}
+        <div
+          style={{
+            background: isStory ? 'rgba(200, 109, 52, 0.08)' : 'rgba(20, 20, 17, 0.03)',
+            border: isStory ? '1.5px solid var(--ember)' : '1px solid var(--line)',
+            borderRadius: '14px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            cursor: 'pointer',
+            transition: 'all 180ms ease',
+            margin: '4px 0 12px 0'
+          }}
+          onClick={() => setIsStory(!isStory)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.4rem' }}>✨</span>
+            <div>
+              <strong style={{ fontSize: '0.90rem', color: 'var(--ink)', display: 'block' }}>
+                Share as 24-Hour Story Spark
+              </strong>
+              <span style={{ fontSize: '0.76rem', color: 'var(--muted)' }}>
+                Shows in the top Story ring and automatically disappears after 24 hours.
+              </span>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={isStory}
+            onChange={(e) => setIsStory(e.target.checked)}
+            style={{ width: '18px', height: '18px', accentColor: 'var(--ember)', cursor: 'pointer' }}
+          />
         </div>
 
         {/* Submit Actions */}

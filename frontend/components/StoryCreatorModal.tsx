@@ -41,7 +41,9 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
         {
           content: content.trim(),
           category: category || 'Story',
-          hashtags: `Story, ${category.replace(/\s+/g, '')}`
+          hashtags: `Story, ${category.replace(/\s+/g, '')}`,
+          isStory: true,
+          gradient: selectedGradient.bg
         },
         session.token
       );

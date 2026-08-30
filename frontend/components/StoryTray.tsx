@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import { StoryViewer, type AuthorStoryGroup } from './StoryViewer';
 import { StoryCreatorModal } from './StoryCreatorModal';
@@ -10,20 +11,50 @@ interface StoryTrayProps {
   onRefresh?: () => void;
 }
 
-export function StoryTray({ thoughts = [], onRefresh }: StoryTrayProps) {
+export function StoryTray({ thoughts: propThoughts = [], onRefresh }: StoryTrayProps) {
   const { session } = useSession();
+  const [activeStories, setActiveStories] = useState<Thought[]>([]);
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [isCreatorOpen, setIsCreatorOpen] = useState(false);
 
-  // Group thoughts by author
+  const fetchActiveStories = () => {
+    api.getStories(session?.token)
+      .then((res) => {
+        const now = Date.now();
+        // 24 Hours in milliseconds = 24 * 60 * 60 * 1000
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        const validStories = (res.stories || []).filter((s) => {
+          if (!s.isStory) return false;
+          const age = now - new Date(s.createdAt).getTime();
+          return age < TWENTY_FOUR_HOURS;
+        });
+        setActiveStories(validStories);
+      })
+      .catch(() => setActiveStories([]));
+  };
+
+  useEffect(() => {
+    fetchActiveStories();
+  }, [session?.token]);
+
+  useEffect(() => {
+    const handleStoryCreated = () => {
+      fetchActiveStories();
+      if (onRefresh) onRefresh();
+    };
+    window.addEventListener('story-created', handleStoryCreated);
+    return () => window.removeEventListener('story-created', handleStoryCreated);
+  }, [onRefresh]);
+
+  // Group active 24h stories by author
   const storyGroups: AuthorStoryGroup[] = [];
   const authorIndexMap = new Map<string, number>();
 
   const currentUsername = session?.user?.username?.toLowerCase();
   const currentUserId = session?.user?._id || session?.user?.id;
 
-  // First collect current user's thoughts if any
-  const myThoughts = thoughts.filter((t) => {
+  // First collect current user's active 24h stories if any
+  const myStories = activeStories.filter((t) => {
     const author = t.author;
     if (!author) return false;
     const authId = typeof author === 'string' ? author : author._id || author.id;
@@ -31,7 +62,7 @@ export function StoryTray({ thoughts = [], onRefresh }: StoryTrayProps) {
     return (currentUserId && authId === currentUserId) || (currentUsername && authUser === currentUsername);
   });
 
-  if (session?.user && myThoughts.length > 0) {
+  if (session?.user && myStories.length > 0) {
     const myName = session.user.name || session.user.username || 'You';
     const myAvatar =
       session.user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(myName)}`;
@@ -41,13 +72,13 @@ export function StoryTray({ thoughts = [], onRefresh }: StoryTrayProps) {
       authorUsername: session.user.username,
       authorAvatar: myAvatar,
       isSelf: true,
-      thoughts: myThoughts
+      thoughts: myStories
     });
     authorIndexMap.set(session.user.username.toLowerCase(), 0);
   }
 
-  // Next group other authors' thoughts
-  thoughts.forEach((t) => {
+  // Next group other authors' active 24h stories
+  activeStories.forEach((t) => {
     const author = t.author;
     if (!author) return;
     const username = typeof author === 'object' ? author.username : '';
@@ -85,7 +116,7 @@ export function StoryTray({ thoughts = [], onRefresh }: StoryTrayProps) {
       ? `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(session.user.name)}`
       : 'https://api.dicebear.com/7.x/initials/svg?seed=You');
 
-  const hasOwnStories = myThoughts.length > 0;
+  const hasOwnStories = myStories.length > 0;
 
   return (
     <>

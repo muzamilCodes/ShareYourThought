@@ -13,7 +13,10 @@ const thoughtSchema = new mongoose.Schema(
     commentsCount: { type: Number, default: 0 },
     viewsCount: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
-    visibility: { type: String, enum: ['public', 'followers'], default: 'public' }
+    visibility: { type: String, enum: ['public', 'followers'], default: 'public' },
+    isStory: { type: Boolean, default: false },
+    storyExpiresAt: { type: Date, default: null },
+    gradient: { type: String, default: '' }
   },
   { timestamps: true }
 );

@@ -58,12 +58,13 @@ async function findOrCreateCategory(categoryInput) {
 }
 
 export const createThought = asyncHandler(async (req, res) => {
-  const { content, imageUrl, category, hashtags, visibility } = req.body;
+  const { content, imageUrl, category, hashtags, visibility, isStory, gradient } = req.body;
   if (!content || !String(content).trim() || !category) {
     return res.status(400).json({ message: 'Content and category are required' });
   }
 
   const categoryDoc = await findOrCreateCategory(category);
+  const isStoryBool = Boolean(isStory);
 
   const thought = await Thought.create({
     author: req.user._id,
@@ -72,6 +73,9 @@ export const createThought = asyncHandler(async (req, res) => {
     category: categoryDoc.slug,
     hashtags: parseHashtags(hashtags),
     visibility: visibility === 'followers' ? 'followers' : 'public',
+    isStory: isStoryBool,
+    storyExpiresAt: isStoryBool ? new Date(Date.now() + 24 * 60 * 60 * 1000) : null,
+    gradient: gradient ? String(gradient).trim() : '',
     viewsCount: 0
   });
 
@@ -80,6 +84,29 @@ export const createThought = asyncHandler(async (req, res) => {
 
   const populated = await populateThought(Thought.findById(thought._id));
   res.status(201).json({ thought: populated });
+});
+
+export const getStories = asyncHandler(async (req, res) => {
+  const now = new Date();
+  // Only active stories from last 24 hours that are marked isStory: true
+  const filters = {
+    isStory: true,
+    $or: [
+      { storyExpiresAt: { $gt: now } },
+      { createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+    ]
+  };
+
+  const allowed = await applyPrivateFilter(filters, req);
+  if (!allowed) {
+    return res.json({ stories: [] });
+  }
+
+  const stories = await populateThought(
+    Thought.find(filters).sort({ createdAt: -1 }).limit(50)
+  );
+
+  res.json({ stories });
 });
 
 async function applyPrivateFilter(filters, req) {

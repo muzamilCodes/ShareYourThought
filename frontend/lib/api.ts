@@ -133,8 +133,19 @@ export const api = {
       { token }
     ),
   getThought: (id: string, token?: string) => apiFetch<{ thought: Thought }>(`/thoughts/${id}`, { token }),
-  createThought: (payload: { content: string; imageUrl?: string; category: string; hashtags: string; visibility?: string }, token: string) =>
-    apiFetch<{ thought: Thought }>('/thoughts', { method: 'POST', token, body: JSON.stringify(payload) }),
+  getStories: (token?: string) => apiFetch<{ stories: Thought[] }>('/thoughts/stories/active', { token }),
+  createThought: (
+    payload: {
+      content: string;
+      imageUrl?: string;
+      category: string;
+      hashtags: string;
+      visibility?: string;
+      isStory?: boolean;
+      gradient?: string;
+    },
+    token: string
+  ) => apiFetch<{ thought: Thought }>('/thoughts', { method: 'POST', token, body: JSON.stringify(payload) }),
   updateThought: (id: string, payload: Partial<{ content: string; imageUrl: string; category: string; hashtags: string; visibility: string }>, token: string) =>
     apiFetch<{ thought: Thought }>(`/thoughts/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
   deleteThought: (id: string, token: string) => apiFetch<{ message: string }>(`/thoughts/${id}`, { method: 'DELETE', token }),

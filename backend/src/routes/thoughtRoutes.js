@@ -4,6 +4,7 @@ import {
   deleteThought,
   getExploreThoughts,
   getPlatformStats,
+  getStories,
   getThought,
   getThoughtByCategory,
   getThoughts,
@@ -20,6 +21,7 @@ import { optionalAuth, protect } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/stats/summary', getPlatformStats);
+router.get('/stories/active', optionalAuth, getStories);
 router.get('/', optionalAuth, getThoughts);
 router.get('/explore/all', optionalAuth, getExploreThoughts);
 router.get('/trending/top', optionalAuth, getTrendingThoughts);

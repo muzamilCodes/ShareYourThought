@@ -7,6 +7,7 @@ import { Reveal } from '../components/Reveal';
 import { ThoughtCard } from '../components/ThoughtCard';
 import { FeedSkeleton } from '../components/SkeletonLoader';
 import { StoryTray } from '../components/StoryTray';
+import { MobileSuggestedUsers } from '../components/MobileSuggestedUsers';
 import { InstagramRightRail } from '../components/InstagramRightRail';
 import { useSession } from '../hooks/useSession';
 import { api } from '../lib/api';
@@ -168,16 +169,21 @@ export default function HomePage() {
           ) : thoughts.length ? (
             <div className="thought-grid">
               {thoughts.map((thought, idx) => (
-                <Reveal key={thought._id}>
-                  <div style={{ position: 'relative' }}>
-                    {activeSort === 'trending' && idx < 3 ? (
-                      <div className="trend-rank-badge">
-                        {idx === 0 ? '🥇 #1 Trending' : idx === 1 ? '🥈 #2 Trending' : '🥉 #3 Trending'}
-                      </div>
-                    ) : null}
-                    <ThoughtCard thought={thought} onDeleted={handleDeleted} />
-                  </div>
-                </Reveal>
+                <div key={thought._id}>
+                  <Reveal>
+                    <div style={{ position: 'relative' }}>
+                      {activeSort === 'trending' && idx < 3 ? (
+                        <div className="trend-rank-badge">
+                          {idx === 0 ? '🥇 #1 Trending' : idx === 1 ? '🥈 #2 Trending' : '🥉 #3 Trending'}
+                        </div>
+                      ) : null}
+                      <ThoughtCard thought={thought} onDeleted={handleDeleted} />
+                    </div>
+                  </Reveal>
+
+                  {/* Clean In-Feed Suggested Creators (Appears after 2nd post only if unfollowed creators exist) */}
+                  {idx === 1 && <MobileSuggestedUsers />}
+                </div>
               ))}
             </div>
           ) : (

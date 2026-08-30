@@ -266,7 +266,7 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
               <div className="story-media-overlay" />
             </div>
           ) : (
-            <div className="story-gradient-bg" />
+            <div className="story-gradient-bg" style={{ background: currentStory.gradient || undefined }} />
           )}
 
           {/* Text Content Overlay */}

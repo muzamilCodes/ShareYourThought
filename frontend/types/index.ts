@@ -10,6 +10,9 @@ export type Thought = {
   commentsCount: number;
   viewsCount?: number;
   featured?: boolean;
+  isStory?: boolean;
+  storyExpiresAt?: string;
+  gradient?: string;
   createdAt: string;
   updatedAt?: string;
   author: User;
