@@ -1,432 +1,334 @@
-# 🚀 ThoughtShare — Complete Full-Stack PWA Architecture & Documentation (A to Z)
+# 🚀 ThoughtShare — Complete Full-Stack Social PWA Architecture & Documentation (A to Z)
 
-**ThoughtShare** is a modern, high-performance, mobile-first **Progressive Web App (PWA)** and editorial social platform where users can publish thoughts, share photos from mobile camera/gallery, discover trending topics, interact with Instagram-style stories & double-tap likes, and connect through real conversations.
+**ThoughtShare** is a production-ready, mobile-first **Progressive Web App (PWA)** and social publishing platform built with **Next.js 15 + React 19 + TypeScript** on the frontend and **Node.js + Express 5 + MongoDB** on the backend.
 
 - 🌐 **Live Web App (Vercel)**: [https://share-your-thought-eight.vercel.app/](https://share-your-thought-eight.vercel.app/)
 - ⚙️ **Live Backend API (Render)**: [https://shareyourthought-1.onrender.com](https://shareyourthought-1.onrender.com)
+- 📦 **GitHub Repository**: [https://github.com/muzamilCodes/ShareYourThought](https://github.com/muzamilCodes/ShareYourThought)
 
 ---
 
 ## 📑 Table of Contents
-1. [Tech Stack](#1-tech-stack)
-2. [Full System Architecture & Relations](#2-full-system-architecture--relations)
-3. [Database Schema & Models (A to Z)](#3-database-schema--models-a-to-z)
-4. [Backend API Reference & Endpoints](#4-backend-api-reference--endpoints)
-5. [Frontend Architecture & Components](#5-frontend-architecture--components)
-6. [Instagram-Style & PWA Features](#6-instagram-style--pwa-features)
-7. [Email Deliverability Engine (Resend + Brevo + SMTP)](#7-email-deliverability-engine)
-8. [Trending Algorithm (Gravity Formula)](#8-trending-algorithm)
-9. [Environment Variables Configuration](#9-environment-variables-configuration)
-10. [Local Development & Deployment Guide](#10-local-development--deployment-guide)
+1. [System Architecture & Full-Stack Relationship](#1-system-architecture--full-stack-relationship)
+2. [Tech Stack Breakdown](#2-tech-stack-breakdown)
+3. [Repository Directory Structure](#3-repository-directory-structure)
+4. [Database Models & Mongoose Schemas](#4-database-models--mongoose-schemas)
+5. [Frontend & Backend Interaction Flow](#5-frontend--backend-interaction-flow)
+6. [Key Features & Subsystems](#6-key-features--subsystems)
+   - [24-Hour Story Sparks & In-Story Deletion](#24-hour-story-sparks)
+   - [Multi-Tier Algorithmic Feed Ranking](#multi-tier-algorithmic-feed-ranking)
+   - [Email Deliverability Engine (Resend + Brevo + SMTP)](#email-deliverability-engine)
+   - [In-Feed Suggested Creators](#in-feed-suggested-creators)
+   - [Admin Command Center & Moderation](#admin-command-center)
+   - [Progressive Web App (PWA) Capabilities](#progressive-web-app-pwa-capabilities)
+7. [Complete REST API Reference](#7-complete-rest-api-reference)
+8. [Environment Variables Reference](#8-environment-variables-reference)
+9. [Local Development Setup Guide](#9-local-development-setup-guide)
+10. [Cloud Deployment Guide (Vercel + Render)](#10-cloud-deployment-guide)
 
 ---
 
-## 1. Tech Stack
+## 1. System Architecture & Full-Stack Relationship
 
-### 🎨 Frontend (Client-Side)
-- **Framework**: [Next.js 15 (App Router)](https://nextjs.org/) + [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **Design System**: Vanilla CSS tokens (`--sand`, `--ember`, `--ink`, `--paper`, `--line`) with system & user Dark Mode (`[data-theme='dark']`)
-- **PWA Capabilities**: Service Worker (`sw.js`), Web App Manifest (`manifest.json`), Offline Fallback (`/offline`), Install Prompts, Push Notification handlers
-- **Image Processing**: Client-side HTML5 Canvas compression (`imageUtils.ts`) for instant camera & photo uploads
-
-### 🛠️ Backend (Server-Side)
-- **Runtime & Server**: [Node.js](https://nodejs.org/) (ES Modules) + [Express 5](https://expressjs.com/)
-- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose 8 ODM](https://mongoosejs.com/)
-- **Authentication**: JWT (JSON Web Tokens) with HttpOnly secure cookies + 6-digit Email OTP verification
-- **Email Delivery**: Multi-Provider Engine (Resend HTTPS REST API, Brevo REST API, Gmail/Hostinger SMTP with connection pooling)
-- **Security & Middleware**: Helmet, Express Mongo Sanitize, Rate Limiter, CORS, Morgan logging
-
----
-
-## 2. Full System Architecture & Relations
+The ThoughtShare ecosystem is split into two independent, decoupled services:
 
 ```mermaid
 graph TD
-    subgraph Frontend ["Frontend (Next.js 15 PWA - Vercel)"]
-        UI[Instagram-Style UI / PWA Shell]
-        ST[StoryTray & Sparks]
-        TC[ThoughtCard & HeartBurst]
-        BN[BottomNav & TopNavbar]
-        PWM[PwaManager & Service Worker]
-        API_LIB[Frontend API Client lib/api.ts]
+    subgraph Client ["Frontend (Next.js 15 PWA on Vercel)"]
+        UI["🎨 Mobile-First UI (Instagram & Threads style)"]
+        ST["✨ StoryTray & StoryViewer (24h Expiry)"]
+        TC["✍️ ThoughtCard & Double-Tap Heartburst"]
+        CT["🚀 CreateThought & Photo Compression"]
+        SU["👥 In-Feed Suggested Creators"]
+        ADM["🛡️ Admin Command Center"]
+        API_SDK["📡 Frontend API Client (lib/api.ts)"]
     end
 
-    subgraph Backend ["Backend (Express 5 REST API - Render)"]
-        AUTH_CTRL[authController.js]
-        THOUGHT_CTRL[thoughtController.js]
-        COMMENT_CTRL[commentController.js]
-        LIKE_CTRL[likeController.js]
-        USER_CTRL[userController.js]
-        NOTIF_CTRL[notificationController.js]
-        OTP_SVC[otp.js - Multi-Provider Mailer]
+    subgraph Server ["Backend (Express 5 on Render)"]
+        MW["🛡️ Middleware: CORS, Helmet, MongoSanitize, TrustProxy"]
+        AUTH["🔐 Auth Controller (OTP & JWT)"]
+        THOUGHTS["📜 Thought Controller (Feed Ranking & Stories)"]
+        USERS["👤 User Controller (Profiles & Graph)"]
+        ADMIN["📊 Admin Controller (Metrics & Moderation)"]
+        MAILER["📨 Multi-Provider Email Engine (otp.js)"]
     end
 
-    subgraph Database ["Database (MongoDB Atlas)"]
-        U_DB[(Users Collection)]
-        T_DB[(Thoughts Collection)]
-        C_DB[(Comments Collection)]
-        OTP_DB[(OtpTokens Collection)]
-        N_DB[(Notifications Collection)]
-        CAT_DB[(Categories Collection)]
+    subgraph Database ["Database (MongoDB Atlas Cluster)"]
+        M_USERS[("Users Collection")]
+        M_THOUGHTS[("Thoughts Collection")]
+        M_COMMENTS[("Comments Collection")]
+        M_NOTIFS[("Notifications Collection")]
+        M_OTPS[("OTP Tokens Collection")]
+        M_CATS[("Categories Collection")]
     end
 
-    subgraph ThirdParty ["Third-Party Cloud Services"]
-        RESEND[Resend API Port 443]
-        BREVO[Brevo API Port 443]
-        GMAIL[Gmail SMTP]
-        CLOUDINARY[Cloudinary CDN]
+    subgraph CloudServices ["External Cloud Services"]
+        RESEND["📨 Resend REST API (Port 443)"]
+        BREVO["📨 Brevo REST API (Port 443)"]
+        GMAIL["📨 Gmail SMTP (TLS 587)"]
+        DICEBEAR["🖼️ DiceBear Avatars CDN"]
     end
 
-    UI --> API_LIB
-    API_LIB -->|HTTPS /api/*| Backend
-    AUTH_CTRL --> U_DB & OTP_DB
-    AUTH_CTRL --> OTP_SVC
-    OTP_SVC --> RESEND & BREVO & GMAIL
-    THOUGHT_CTRL --> T_DB & U_DB & CAT_DB & N_DB
-    COMMENT_CTRL --> C_DB & T_DB & N_DB
-    LIKE_CTRL --> T_DB & C_DB & N_DB
-    USER_CTRL --> U_DB & T_DB & N_DB
-    NOTIF_CTRL --> N_DB
+    UI --> API_SDK
+    API_SDK -->|"HTTPS JSON Requests (Bearer JWT)"| MW
+    MW --> AUTH & THOUGHTS & USERS & ADMIN
+    AUTH --> M_USERS & M_OTPS
+    AUTH --> MAILER
+    MAILER --> RESEND & BREVO & GMAIL
+    THOUGHTS --> M_THOUGHTS & M_USERS & M_CATS & M_NOTIFS
+    USERS --> M_USERS & M_THOUGHTS & M_NOTIFS
+    ADMIN --> M_USERS & M_THOUGHTS & M_CATS
+    UI --> DICEBEAR
 ```
 
 ---
 
-## 3. Database Schema & Models (A to Z)
+## 2. Tech Stack Breakdown
 
-### 1. `User` Model (`backend/src/models/User.js`)
-Represents registered users on the platform.
+### 🎨 Frontend (`/frontend`)
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components & Client Hydration)
+- **UI Engine**: [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: Vanilla CSS Design Tokens with Dark Mode support (`[data-theme='dark']`)
+- **PWA Capabilities**: Service Worker (`sw.js`), Web Manifest (`manifest.json`), Offline Fallback (`/offline`), Install Prompts
+- **Image Processing**: Client-side HTML5 Canvas compression (`imageUtils.ts`) for instant camera & photo uploads
+- **Audio & Haptics**: Synthesized Web Audio UI sounds (`soundUtils.ts`)
+
+### 🛠️ Backend (`/backend`)
+- **Runtime**: [Node.js](https://nodejs.org/) (ES Modules)
+- **Server Framework**: [Express 5](https://expressjs.com/)
+- **Database ODM**: [MongoDB](https://www.mongodb.com/) with [Mongoose 8](https://mongoosejs.com/)
+- **Authentication**: Stateless JSON Web Tokens (JWT) + 6-digit Email OTP Verification
+- **Email Engine**: Multi-Provider Architecture (Resend REST API -> Brevo REST API -> Gmail/SMTP pool)
+- **Security**: Helmet, Express NoSQL Injection Sanitizer, Trust Proxy 1, CORS reflections, Morgan logger
+
+---
+
+## 3. Repository Directory Structure
+
+```bash
+ShareYourThought/
+├── backend/
+│   ├── src/
+│   │   ├── config/               # DB connection (db.js) and env validator (env.js)
+│   │   ├── controllers/          # Business logic (thoughts, auth, users, admin, comments)
+│   │   ├── middleware/           # auth.js (JWT verify), errorHandler.js, notFound.js
+│   │   ├── models/               # Mongoose Schemas (User, Thought, Comment, Notification, OtpToken)
+│   │   ├── routes/               # Express route declarations
+│   │   ├── utils/                # otp.js (Mailer), notifications.js, paginate.js
+│   │   ├── app.js                # Express app initialization & route mounting
+│   │   └── server.js             # HTTP server entry point
+│   ├── package.json
+│   └── README.md                 # Backend detailed documentation
+├── frontend/
+│   ├── app/                      # Next.js 15 App Router pages & layouts
+│   ├── components/               # Reusable UI components (StoryTray, ThoughtCard, Navbar)
+│   ├── hooks/                    # useSession.ts hook
+│   ├── lib/                      # api.ts (HTTP client), imageUtils.ts, soundUtils.ts
+│   ├── public/                   # manifest.json, sw.js, app icons
+│   ├── package.json
+│   └── README.md                 # Frontend detailed documentation
+└── README.md                     # Master project documentation
+```
+
+---
+
+## 4. Database Models & Mongoose Schemas
+
+### 1. `Thought` Model (`backend/src/models/Thought.js`)
+```javascript
+{
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  content: { type: String, required: true, trim: true, maxlength: 2000 },
+  imageUrl: { type: String, default: '' },
+  category: { type: String, default: 'life', lowercase: true, index: true },
+  hashtags: [{ type: String, lowercase: true, trim: true }],
+  visibility: { type: String, enum: ['public', 'followers'], default: 'public' },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  viewsCount: { type: Number, default: 0, index: true },
+  sharesCount: { type: Number, default: 0 },
+  featured: { type: Boolean, default: false },
+  
+  // 24-Hour Story Spark Fields
+  isStory: { type: Boolean, default: false, index: true },
+  storyExpiresAt: { type: Date, default: null, index: true },
+  gradient: { type: String, default: '' }
+}
+```
+
+### 2. `User` Model (`backend/src/models/User.js`)
 ```javascript
 {
   name: { type: String, required: true, trim: true },
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true, select: false }, // Bcrypt hash
-  bio: { type: String, default: '', maxLength: 300 },
-  avatar: { type: String, default: 'https://api.dicebear.com/7.x/initials/svg?seed=...' },
-  website: { type: String, default: '' },
-  location: { type: String, default: '' },
-  followers: [{ type: ObjectId, ref: 'User' }], // Array of User IDs following this user
-  following: [{ type: ObjectId, ref: 'User' }], // Array of User IDs this user follows
-  savedThoughts: [{ type: ObjectId, ref: 'Thought' }], // Bookmarked thoughts
+  password: { type: String, required: true, select: false },
+  avatar: { type: String, default: '' },
+  bio: { type: String, default: '', maxlength: 500 },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
-  timestamps: true
-}
-```
-
-### 2. `Thought` Model (`backend/src/models/Thought.js`)
-Represents published posts/thoughts.
-```javascript
-{
-  author: { type: ObjectId, ref: 'User', required: true },
-  content: { type: String, required: true, maxLength: 2000 },
-  imageUrl: { type: String, default: '' }, // Direct Base64 Data URL or Cloudinary CDN link
-  category: { type: String, required: true, default: 'General' },
-  hashtags: [{ type: String, trim: true }],
-  visibility: { type: String, enum: ['public', 'unlisted', 'private'], default: 'public' },
-  likes: [{ type: ObjectId, ref: 'User' }],
-  saves: [{ type: ObjectId, ref: 'User' }],
-  viewsCount: { type: Number, default: 0 },
-  sharesCount: { type: Number, default: 0 },
-  commentsCount: { type: Number, default: 0 },
-  gravityScore: { type: Number, default: 0 }, // Dynamic score for Trending Feed
-  timestamps: true
-}
-```
-
-### 3. `Comment` Model (`backend/src/models/Comment.js`)
-Represents threaded discussions on thoughts.
-```javascript
-{
-  thought: { type: ObjectId, ref: 'Thought', required: true },
-  author: { type: ObjectId, ref: 'User', required: true },
-  content: { type: String, required: true, maxLength: 600 },
-  parentComment: { type: ObjectId, ref: 'Comment', default: null }, // Nested replies support
-  likes: [{ type: ObjectId, ref: 'User' }],
-  timestamps: true
-}
-```
-
-### 4. `OtpToken` Model (`backend/src/models/OtpToken.js`)
-Ephemeral 6-digit verification codes for registration, login, and forgot password.
-```javascript
-{
-  contact: { type: String, required: true, lowercase: true }, // Target email
-  code: { type: String, required: true }, // 6-digit OTP
-  purpose: { type: String, enum: ['register', 'login', 'reset-password'], required: true },
-  payload: { type: Object, default: {} }, // Pre-stored name, username, password during registration
-  isUsed: { type: Boolean, default: false },
-  expiresAt: { type: Date, required: true, index: { expires: '0s' } }, // Auto-deletes via MongoDB TTL index
-  timestamps: true
-}
-```
-
-### 5. `Notification` Model (`backend/src/models/Notification.js`)
-Real-time activity alerts for users.
-```javascript
-{
-  recipient: { type: ObjectId, ref: 'User', required: true },
-  sender: { type: ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['like', 'comment', 'reply', 'follow', 'mention', 'system'], required: true },
-  thought: { type: ObjectId, ref: 'Thought', default: null },
-  comment: { type: ObjectId, ref: 'Comment', default: null },
-  isRead: { type: Boolean, default: false },
-  timestamps: true
-}
-```
-
-### 6. `Category` Model (`backend/src/models/Category.js`)
-Topic channels for organizing thoughts.
-```javascript
-{
-  name: { type: String, required: true, unique: true },
-  slug: { type: String, required: true, unique: true, lowercase: true },
-  description: { type: String, default: '' },
-  thoughtCount: { type: Number, default: 0 },
-  timestamps: true
+  isPrivate: { type: Boolean, default: false },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  savedThoughts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Thought' }]
 }
 ```
 
 ---
 
-## 4. Backend API Reference & Endpoints
+## 5. Frontend & Backend Interaction Flow
 
-### 🔐 Authentication (`/api/auth`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/otp/send-register` | Sends 6-digit OTP to user's email for registration | ❌ |
-| `POST` | `/api/auth/otp/verify-register` | Verifies OTP and creates new User account | ❌ |
-| `POST` | `/api/auth/otp/send-login` | Sends 6-digit login code to user's email | ❌ |
-| `POST` | `/api/auth/otp/verify-login` | Verifies login OTP and issues JWT cookie + token | ❌ |
-| `POST` | `/api/auth/otp/send-forgot-password` | Sends password reset OTP to email | ❌ |
-| `POST` | `/api/auth/otp/verify-reset-password` | Verifies reset OTP and updates password | ❌ |
-| `POST` | `/api/auth/login` | Direct password login | ❌ |
-| `POST` | `/api/auth/register` | Direct password registration | ❌ |
-| `POST` | `/api/auth/logout` | Clears HttpOnly authentication cookie | ❌ |
-| `GET` | `/api/auth/me` | Returns logged-in user profile | ✅ |
+1. **Authentication Handshake**:
+   - Client calls `POST /api/auth/send-register-otp` with `{ email, name, password }`.
+   - Backend generates a 6-digit code, stores it in `OtpToken` with 10-minute TTL, and sends it via Resend / Brevo API.
+   - User inputs OTP in client -> client calls `POST /api/auth/verify-register-otp`.
+   - Backend verifies OTP, creates user, issues signed JWT token, and returns user object.
+   - Frontend stores token in `localStorage` and updates global session context.
 
-### ✍️ Thoughts & Feed (`/api/thoughts`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/thoughts` | List thoughts (`?sort=trending\|newest\|popular&page=1&limit=12`) | ❌ |
-| `GET` | `/api/thoughts/trending/top` | Top trending thoughts by gravity score | ❌ |
-| `GET` | `/api/thoughts/explore/all` | Paginated explore feed | ❌ |
-| `GET` | `/api/thoughts/stats/summary` | Real MongoDB aggregate platform metrics (Views, Thoughts, Engagements) | ❌ |
-| `GET` | `/api/thoughts/:id` | Get single thought with author details | ❌ |
-| `POST` | `/api/thoughts` | Publish new thought (supports photo file upload) | ✅ |
-| `PATCH` | `/api/thoughts/:id` | Update author's existing thought | ✅ |
-| `DELETE` | `/api/thoughts/:id` | Delete thought | ✅ |
-| `POST` | `/api/thoughts/:id/view` | Increment real-time impression view count | ❌ |
-| `POST` | `/api/thoughts/:id/save` | Bookmark / Un-bookmark thought | ✅ |
-| `POST` | `/api/thoughts/:id/share` | Increment share count | ❌ / ✅ |
+2. **Feed Fetching & Dynamic Ranking**:
+   - Client calls `GET /api/thoughts?sort=trending` passing `Bearer <token>`.
+   - Backend excludes `{ isStory: true }` so stories never pollute the feed.
+   - Backend boosts author's own posts (Tier 3) and followed creators (Tier 2) to the top of the feed stream.
+   - On page refresh, discovery thoughts rotate dynamically.
 
-### 💬 Comments & Discussions (`/api/comments`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/comments/thoughts/:thoughtId` | Get all threaded comments for a thought | ❌ |
-| `POST` | `/api/comments/thoughts/:thoughtId` | Add comment or nested reply (`parentComment`) | ✅ |
-| `DELETE` | `/api/comments/:id` | Delete comment (author only) | ✅ |
-
-### ❤️ Likes & Reactions (`/api/likes`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/likes/thoughts/:id` | Toggle like on a thought (creates notification) | ✅ |
-| `POST` | `/api/likes/comments/:id` | Toggle like on a comment | ✅ |
-
-### 👤 Users & Social Profiles (`/api/users`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/users/:username` | Get public profile + user's published thoughts | ❌ |
-| `POST` | `/api/users/:username/follow` | Follow / Unfollow user (creates notification) | ✅ |
-| `GET` | `/api/users/search?q=query` | Search users by name or username | ❌ |
-| `PATCH` | `/api/users/me` | Update bio, avatar, website, location | ✅ |
-
-### 🔔 Notifications (`/api/notifications`)
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/notifications` | List user's activity notifications + unread count | ✅ |
-| `PATCH` | `/api/notifications/read` | Mark all unread notifications as read | ✅ |
+3. **Story Sparks Lifecycle**:
+   - User clicks `+` on Story Tray -> attaches a photo or picks a gradient -> submits with `isStory: true`.
+   - Backend saves thought with `isStory: true` and `storyExpiresAt: new Date(Date.now() + 24*3600*1000)`.
+   - StoryTray fetches active stories from `GET /api/thoughts/stories/active`.
+   - After 24 hours, stories automatically disappear from the tray.
+   - Users can delete their active story directly in `StoryViewer` using the custom in-story confirmation modal.
 
 ---
 
-## 5. Frontend Architecture & Components
+## 6. Key Features & Subsystems
 
-```
-frontend/
-├── app/
-│   ├── layout.tsx              # Root HTML shell, PWA metadata, Theme script, BottomNav & PwaManager mount
-│   ├── globals.css             # Design tokens, Dark mode variables, Instagram styles, Skeleton shimmer
-│   ├── page.tsx                # Home feed, StoryTray, sorting tabs (Trending/Latest/Popular), skeletons
-│   ├── explore/page.tsx        # Topic chips, trending grid, user discovery
-│   ├── trending/page.tsx       # Top trending rankings with gravity score indicators
-│   ├── create/page.tsx         # Mobile photo camera upload, live preview, character counter, hashtags
-│   ├── thought/[id]/page.tsx   # Thought detail, threaded discussions, reply composer
-│   ├── profile/page.tsx        # Redirects seamlessly to /profile/[username]
-│   ├── profile/[username]/page.tsx # Instagram-style profile, Thoughts/Followers/Following/Saved tabs
-│   ├── notifications/page.tsx  # Activity center with unread highlights
-│   ├── search/page.tsx         # Global debounced search for thoughts, tags, and users
-│   ├── login/page.tsx          # Dual Login (Password or 6-digit OTP)
-│   ├── register/page.tsx       # Simplified 3-field register with automatic username generator
-│   ├── forgot-password/page.tsx # OTP-based password reset
-│   └── offline/page.tsx        # PWA Offline fallback screen with "Try Again"
-├── components/
-│   ├── Navbar.tsx              # Desktop header, Search, ThemeToggle, Auth links & Mobile top bar
-│   ├── BottomNav.tsx           # Instagram-style fixed bottom navigation (Home, Explore, Create FAB, Alerts, Profile)
-│   ├── StoryTray.tsx           # Instagram-style horizontal scrolling creator stories with active rings
-│   ├── ThoughtCard.tsx         # Thought card with double-tap heart pop, inline quick comment, options menu
-│   ├── CreateThought.tsx       # Photo file picker, canvas compressor, tag chips, draft preview
-│   ├── PwaManager.tsx          # Service worker registration, install prompts (Android/iOS), online/offline listener
-│   ├── ThemeToggle.tsx         # Light ☀️ / Dark 🌙 mode toggle with localStorage persistence
-│   ├── SkeletonLoader.tsx      # Smooth shimmer placeholder cards during data fetching
-│   └── Footer.tsx              # Live real-time community pulse bar (real MongoDB counts)
-├── hooks/
-│   └── useSession.ts           # Reactive user authentication state hook
-└── lib/
-    ├── api.ts                  # Universal API client wrapper with auth bearer tokens
-    ├── imageUtils.ts           # HTML5 Canvas client-side photo compression (< 1MB)
-    └── session.ts              # LocalStorage session persistence
-```
+### 24-Hour Story Sparks
+- Full-screen interactive story player with auto-progressing segments (5 seconds per story).
+- Direct mobile camera/gallery photo upload with instant client compression.
+- 5 preset vibrant gradients (`Sunset Ember`, `Twilight`, `Ocean Wave`, `Emerald Forest`, `Velvet Dark`).
+- Double-tap likes, reaction bursts (`❤️`, `🔥`, `👏`, `💡`, `💯`, `✨`), and threaded replies.
+- Dedicated in-story **`🗑️ Delete`** modal with instant reactive state update.
+
+### Multi-Tier Algorithmic Feed Ranking
+- **Tier 3**: Author's own posts rank #1 for themselves.
+- **Tier 2**: Followed creators rank top priority for their followers.
+- **Tier 1**: General discovery posts ranked by time-decay gravity:
+  $$\text{Score} = \frac{(\text{Likes} \times 5) + (\text{Comments} \times 4) + (\text{Saves} \times 4) + (\text{Views} \times 1)}{(\text{Age in Hours} + 2)^{1.3}}$$
+
+### In-Feed Suggested Creators
+- Appears seamlessly after the 2nd thought in the feed stream.
+- Automatically filters out creators you already follow.
+- Includes a clean `✕` dismiss button.
+
+### Admin Command Center (`/admin`)
+- Accessible exclusively by platform admins (`role === 'admin'`).
+- Live metrics: Total Users, Total Thoughts, Total Views, Likes, Shares, Categories.
+- Interactive User Management table: Search creators, filter by role, promote to Admin, demote to User, or permanently delete accounts with cascading thought cleanup.
 
 ---
 
-## 6. Instagram-Style & PWA Features
+## 7. Complete REST API Reference
 
-### 🌟 1. Instagram-Style UI Enhancements
-- **Story Sparks Tray**: Gradient ring avatars (`linear-gradient(45deg, #f59e0b, #d95b28, #e11d48)`) at the top of the feed for fast user story exploration.
-- **Double-Tap To Like ❤️**: Double-tapping any thought or image triggers a smooth, large floating red heart burst animation that pops in the center.
-- **Inline Quick Comment**: Comment directly inside the feed cards with `Add a comment… [Post]` without leaving the page.
-- **Floating Create Action Button (FAB)**: Highlighted center `➕` button in the bottom navigation bar.
-
-### 📲 2. Progressive Web App (PWA) Standards
-- **Standalone Mode**: Full-screen experience on Android and iPhone with no browser address bar.
-- **Service Worker (`public/sw.js`)**:
-  - Cache-first strategy for static assets (JS, CSS, SVGs, PNGs, fonts).
-  - Network-first strategy for dynamic pages with automatic fallback to `/offline`.
-  - Zero caching of private authentication tokens.
-- **Web App Manifest (`public/manifest.json`)**: Configured with standard 192x192, 512x512, maskable icons, and shortcut actions.
-
----
-
-## 7. Email Deliverability Engine
-
-To ensure 100% reliable OTP delivery without cloud port blocking on Render/Vercel:
-
-```mermaid
-flowchart TD
-    OTP[OTP Code Generated] --> P1{Try Resend HTTPS API?}
-    P1 -->|Key Found & Port 443 OK| RESEND_OK[Delivered via Resend]
-    P1 -->|Failed / Not Configured| P2{Try Brevo HTTPS API?}
-    P2 -->|Key Found & Port 443 OK| BREVO_OK[Delivered via Brevo]
-    P2 -->|Failed / Not Configured| P3{Try Nodemailer SMTP?}
-    P3 -->|Password Spaces Stripped| SMTP_OK[Delivered via SMTP]
-    P3 -->|Offline / Dev Mode| FALLBACK[Logged to Console & Dev Response]
-```
-
-1. **Primary: Resend REST API** (HTTPS Port 443 — 100% guaranteed delivery on Render).
-2. **Secondary: Brevo REST API** (HTTPS Port 443 fallback).
-3. **Tertiary: Nodemailer Gmail SMTP** (Auto-strips spaces from Google App Passwords).
-4. **Non-Blocking Background Dispatch**: MongoDB creates the token in `< 10ms` and returns the OTP screen instantly (`< 150ms`) without waiting for slow network TLS handshakes.
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/auth/send-register-otp` | Sends 6-digit registration OTP to email | No |
+| `POST` | `/api/auth/verify-register-otp`| Verifies OTP and returns signed JWT | No |
+| `POST` | `/api/auth/send-login-otp` | Sends passwordless login OTP | No |
+| `POST` | `/api/auth/verify-login-otp` | Verifies login OTP | No |
+| `POST` | `/api/auth/login` | Traditional email + password login | No |
+| `GET` | `/api/auth/me` | Current authenticated user profile | Yes |
+| `GET` | `/api/thoughts?sort=trending` | Universal feed sorted by trending/views/newest | Optional |
+| `GET` | `/api/thoughts/stories/active` | Active 24-hour stories only | Optional |
+| `POST` | `/api/thoughts` | Create thought or 24-hour Story Spark | Yes |
+| `GET` | `/api/thoughts/:id` | Get single thought with author details | Optional |
+| `PATCH`| `/api/thoughts/:id` | Edit thought content/category | Yes |
+| `DELETE`| `/api/thoughts/:id` | Delete thought or story permanently | Yes |
+| `POST` | `/api/thoughts/:id/view` | Increments thought views count | No |
+| `POST` | `/api/thoughts/:id/like` | Like or unlike thought | Yes |
+| `POST` | `/api/thoughts/:id/save` | Bookmark / save thought | Yes |
+| `GET` | `/api/users/:username` | User profile with thoughts stream | Optional |
+| `GET` | `/api/users/suggested` | Suggested creator recommendations | Optional |
+| `POST` | `/api/follows/:userId` | Follow or unfollow user | Yes |
+| `GET` | `/api/admin/stats` | Admin platform metrics & timeline | Admin |
+| `GET` | `/api/admin/users` | Admin user management table | Admin |
+| `PATCH`| `/api/admin/users/:id/role`| Promote user to Admin or demote to User | Admin |
+| `DELETE`| `/api/admin/users/:id` | Admin delete user account | Admin |
 
 ---
 
-## 8. Trending Algorithm (Gravity Formula)
+## 8. Environment Variables Reference
 
-ThoughtShare ranks thoughts dynamically using engagement metrics combined with time decay:
-
-$$\text{Score} = \frac{(L \times 3) + (C \times 5) + (S \times 4) + (V \times 0.5) + (K \times 2)}{(T + 2)^{1.5}}$$
-
-Where:
-- $L$ = Number of Likes
-- $C$ = Number of Comments
-- $S$ = Number of Saves / Bookmarks
-- $V$ = Number of Views / Impressions
-- $K$ = Number of Shares
-- $T$ = Age of the thought in hours
-- $^{1.5}$ = Gravity decay parameter ensuring fresh, engaging content continually bubbles up.
-
----
-
-## 9. Environment Variables Configuration
-
-### Backend `.env` (`backend/.env`):
+### Backend (`backend/.env`)
 ```env
-# Server
-NODE_ENV=production
 PORT=5000
+NODE_ENV=production
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/thoughtshare?retryWrites=true&w=majority
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=30d
 CLIENT_URL=https://share-your-thought-eight.vercel.app
 
-# MongoDB
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/thoughtshare?retryWrites=true&w=majority
+# Email Provider Configuration
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
+BREVO_API_KEY=xkeysib-xxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM=ThoughtShare <onboarding@resend.dev>
 
-# JWT Auth
-JWT_SECRET=your_super_secret_jwt_key_here
-JWT_EXPIRES_IN=7d
-
-# Resend API (Recommended for 100% Cloud Delivery)
-RESEND_API_KEY=re_your_resend_api_key_here
-RESEND_FROM=ThoughtShare <onboarding@resend.dev>
-
-# Brevo API (Fallback)
-BREVO_API_KEY=xkeysib_your_brevo_api_key_here
-BREVO_SENDER_EMAIL=your_email@gmail.com
-
-# Gmail SMTP (Fallback)
+# Optional SMTP
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_16_char_google_app_password
-EMAIL_FROM=your_email@gmail.com
-
-# OTP Config
-OTP_LENGTH=6
-OTP_TTL_MINUTES=10
+SMTP_PASS=your_app_password
 ```
 
-### Frontend `.env.local` (`frontend/.env.local`):
+### Frontend (`frontend/.env.local`)
 ```env
 NEXT_PUBLIC_API_URL=https://shareyourthought-1.onrender.com/api
+NEXT_PUBLIC_APP_URL=https://share-your-thought-eight.vercel.app
 ```
 
 ---
 
-## 10. Local Development & Deployment Guide
+## 9. Local Development Setup Guide
 
-### 🚀 Running Locally
+### Prerequisites
+- Node.js 18+ installed
+- MongoDB instance (local or MongoDB Atlas)
 
-#### 1. Start Backend:
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/muzamilCodes/ShareYourThought.git
+cd ShareYourThought
+```
+
+### Step 2: Configure & Start Backend
 ```bash
 cd backend
 npm install
+# Create .env file with your MONGO_URI and JWT_SECRET
 npm run dev
-# Backend runs on http://localhost:5000
 ```
+Backend starts on `http://localhost:5000`.
 
-#### 2. Start Frontend:
+### Step 3: Configure & Start Frontend
 ```bash
-cd frontend
+cd ../frontend
 npm install
+# Set NEXT_PUBLIC_API_URL=http://localhost:5000/api in .env.local
 npm run dev
-# Frontend runs on http://localhost:3000
 ```
+Frontend opens on `http://localhost:3000`.
 
 ---
 
-### ☁️ Production Deployment
+## 10. Cloud Deployment Guide
 
-1. **Frontend (Vercel)**:
-   - Connect the GitHub repository `muzamilCodes/ShareYourThought`.
-   - Set **Root Directory** to `frontend`.
-   - Add Environment Variable: `NEXT_PUBLIC_API_URL = https://shareyourthought-1.onrender.com/api`.
-   - Deploy.
+### Deploy Backend on Render:
+1. Link your GitHub repository on [Render](https://render.com).
+2. Choose **Web Service**, set Root Directory to `backend`.
+3. Build Command: `npm install`
+4. Start Command: `npm start`
+5. Add all backend `.env` variables under the **Environment** tab.
 
-2. **Backend (Render)**:
-   - Connect the GitHub repository `muzamilCodes/ShareYourThought`.
-   - Set **Root Directory** to `backend`.
-   - Build Command: `npm install`.
-   - Start Command: `node src/server.js`.
-   - Add Environment Variables (`MONGO_URI`, `JWT_SECRET`, `RESEND_API_KEY`, `CLIENT_URL`).
-   - Deploy.
-
----
-
-## 📜 License
-This project is open-source and built for authentic, thoughtful community conversations.
+### Deploy Frontend on Vercel:
+1. Import your GitHub repository on [Vercel](https://vercel.com).
+2. Set Root Directory to `frontend`.
+3. Add `NEXT_PUBLIC_API_URL` pointing to your Render backend URL (e.g. `https://shareyourthought-1.onrender.com/api`).
+4. Click **Deploy**.
