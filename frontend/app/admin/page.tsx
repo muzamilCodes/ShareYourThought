@@ -471,9 +471,9 @@ export default function AdminPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '14px',
-          marginBottom: '28px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: '12px',
+          marginBottom: '24px'
         }}
       >
         {/* Card 1: Total Users */}
@@ -775,56 +775,122 @@ export default function AdminPage() {
           TAB 2: USER MANAGEMENT (SEARCH, ROLE TOGGLE, DELETE)
       ========================================================= */}
       {activeTab === 'users' && (
-        <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '20px', padding: '20px' }}>
-          {/* Search and Role Filter Bar */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
-            <input
-              type="text"
-              placeholder="Search by name, username, or email…"
-              value={userSearch}
-              onChange={(e) => {
-                setUserSearch(e.target.value);
-                setUserPage(1);
-              }}
-              style={{
-                flex: 1,
-                minWidth: '240px',
-                background: 'var(--dark-soft)',
-                border: '1px solid var(--line)',
-                borderRadius: '12px',
-                padding: '8px 14px',
-                fontSize: '0.88rem',
-                color: 'var(--ink)',
-                outline: 'none'
-              }}
-            />
+        <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '20px', padding: '24px' }}>
+          {/* Header & Description */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--line)' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                👥 Registered Creators & User Accounts
+              </h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--muted)' }}>
+                Manage account permissions, promote creators to admin, or remove accounts.
+              </p>
+            </div>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--ember)', background: 'var(--dark-soft)', padding: '4px 12px', borderRadius: '8px' }}>
+              Total: {users.length} {userRoleFilter ? `${userRoleFilter}s` : 'accounts'}
+            </span>
+          </div>
 
-            <select
-              value={userRoleFilter}
-              onChange={(e) => {
-                setUserRoleFilter(e.target.value);
-                setUserPage(1);
-              }}
-              style={{
-                background: 'var(--dark-soft)',
-                border: '1px solid var(--line)',
-                borderRadius: '12px',
-                padding: '8px 14px',
-                fontSize: '0.86rem',
-                color: 'var(--ink)',
-                outline: 'none'
-              }}
-            >
-              <option value="">All Roles</option>
-              <option value="user">Users Only</option>
-              <option value="admin">Admins Only</option>
-            </select>
+          {/* Search and Role Filter Pills */}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Search by name, username, or email…"
+                value={userSearch}
+                onChange={(e) => {
+                  setUserSearch(e.target.value);
+                  setUserPage(1);
+                }}
+                style={{
+                  width: '100%',
+                  background: 'var(--dark-soft)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '12px',
+                  padding: '9px 14px 9px 36px',
+                  fontSize: '0.88rem',
+                  color: 'var(--ink)',
+                  outline: 'none'
+                }}
+              />
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: '0.90rem' }}>
+                🔍
+              </span>
+            </div>
+
+            {/* Role Filter Pills */}
+            <div style={{ display: 'flex', gap: '6px', background: 'var(--dark-soft)', padding: '4px', borderRadius: '12px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserRoleFilter('');
+                  setUserPage(1);
+                }}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.80rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: userRoleFilter === '' ? 'var(--paper)' : 'transparent',
+                  color: userRoleFilter === '' ? 'var(--ink)' : 'var(--muted)',
+                  boxShadow: userRoleFilter === '' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                All Roles
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserRoleFilter('admin');
+                  setUserPage(1);
+                }}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.80rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: userRoleFilter === 'admin' ? 'var(--paper)' : 'transparent',
+                  color: userRoleFilter === 'admin' ? 'var(--ink)' : 'var(--muted)',
+                  boxShadow: userRoleFilter === 'admin' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                🛡️ Admins
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserRoleFilter('user');
+                  setUserPage(1);
+                }}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '0.80rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: userRoleFilter === 'user' ? 'var(--paper)' : 'transparent',
+                  color: userRoleFilter === 'user' ? 'var(--ink)' : 'var(--muted)',
+                  boxShadow: userRoleFilter === 'user' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none'
+                }}
+              >
+                👤 Regular Users
+              </button>
+            </div>
           </div>
 
           {/* Users Table / Grid */}
-          {allDisplayUsers.length ? (
+          {loadingUsers ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>
+              Loading creators…
+            </div>
+          ) : users.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {allDisplayUsers.map((u) => {
+              {users.map((u) => {
                 const uId = u._id || u.id || '';
                 const isMe = session?.user && (session.user._id === uId || session.user.id === uId);
                 const isUserAdmin = u.role === 'admin';
@@ -838,7 +904,7 @@ export default function AdminPage() {
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
                       gap: '12px',
-                      padding: '12px 16px',
+                      padding: '14px 18px',
                       background: 'var(--dark-soft)',
                       borderRadius: '16px',
                       border: '1px solid var(--line)'
@@ -848,25 +914,25 @@ export default function AdminPage() {
                       <img
                         src={u.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`}
                         alt={u.name}
-                        style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover' }}
+                        style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
                       />
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <strong style={{ fontSize: '0.92rem', color: 'var(--ink)' }}>{u.name}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={{ fontSize: '0.94rem', color: 'var(--ink)' }}>{u.name}</strong>
                           <span
                             style={{
-                              fontSize: '0.68rem',
+                              fontSize: '0.70rem',
                               fontWeight: 800,
-                              padding: '2px 6px',
+                              padding: '2px 8px',
                               borderRadius: '6px',
                               background: isUserAdmin ? 'var(--ember)' : 'rgba(0,0,0,0.08)',
                               color: isUserAdmin ? '#ffffff' : 'var(--muted)'
                             }}
                           >
-                            {u.role ? u.role.toUpperCase() : 'USER'}
+                            {isUserAdmin ? 'ADMIN 🛡️' : 'USER'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                        <div style={{ fontSize: '0.80rem', color: 'var(--muted)', marginTop: '2px' }}>
                           @{u.username} · {u.email}
                         </div>
                       </div>
@@ -891,7 +957,8 @@ export default function AdminPage() {
                               fontSize: '0.80rem',
                               padding: '6px 12px',
                               borderRadius: '10px',
-                              color: isUserAdmin ? '#ef4444' : 'var(--ember)'
+                              color: isUserAdmin ? '#ef4444' : 'var(--ember)',
+                              fontWeight: 700
                             }}
                           >
                             {isUserAdmin ? 'Demote to User' : 'Promote to Admin 🛡️'}
@@ -906,7 +973,7 @@ export default function AdminPage() {
                               color: '#ef4444',
                               fontSize: '0.80rem',
                               fontWeight: 700,
-                              padding: '6px 10px',
+                              padding: '6px 12px',
                               borderRadius: '10px',
                               cursor: 'pointer'
                             }}
@@ -915,8 +982,8 @@ export default function AdminPage() {
                           </button>
                         </>
                       ) : (
-                        <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontStyle: 'italic', padding: '0 8px' }}>
-                          (Current You)
+                        <span style={{ fontSize: '0.80rem', color: 'var(--ember)', fontWeight: 700, padding: '0 8px' }}>
+                          (You - Superadmin)
                         </span>
                       )}
                     </div>
@@ -925,7 +992,33 @@ export default function AdminPage() {
               })}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--muted)' }}>No creators found matching criteria.</div>
+            <div style={{ textAlign: 'center', padding: '40px', background: 'var(--dark-soft)', borderRadius: '16px' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>👥</div>
+              <strong style={{ color: 'var(--ink)', display: 'block', marginBottom: '4px' }}>
+                No creators found
+              </strong>
+              <p style={{ fontSize: '0.84rem', color: 'var(--muted)', margin: '0 0 14px 0' }}>
+                {userRoleFilter === 'user'
+                  ? 'Currently, all registered accounts have the Admin role.'
+                  : userSearch
+                  ? `No accounts matched "${userSearch}".`
+                  : 'No creators registered yet.'}
+              </p>
+              {(userSearch || userRoleFilter) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserSearch('');
+                    setUserRoleFilter('');
+                    setUserPage(1);
+                  }}
+                  className="button-primary"
+                  style={{ fontSize: '0.82rem', padding: '6px 16px', borderRadius: '10px' }}
+                >
+                  Clear Filters & Show All
+                </button>
+              )}
+            </div>
           )}
 
           {/* Pagination */}

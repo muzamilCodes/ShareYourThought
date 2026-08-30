@@ -225,7 +225,30 @@ export function Navbar() {
           </Link>
 
           {/* Right Action Group on the Far-Right Corner */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+            {session?.user?.role === 'admin' && (
+              <Link
+                href="/admin"
+                style={{
+                  padding: '5px 10px',
+                  borderRadius: '10px',
+                  background: pathname.startsWith('/admin') ? 'var(--ember)' : 'var(--dark-soft)',
+                  color: pathname.startsWith('/admin') ? '#ffffff' : 'var(--ink)',
+                  fontSize: '0.80rem',
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  border: '1px solid var(--line)'
+                }}
+                title="Admin Command Center"
+              >
+                <span>🛡️</span>
+                <span>Admin</span>
+              </Link>
+            )}
+
             <ThemeToggle compact />
 
             {/* Absolute Far-Right Corner Alert / Notification Icon */}
