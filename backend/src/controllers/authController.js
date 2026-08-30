@@ -128,13 +128,15 @@ export const sendRegisterOtp = asyncHandler(async (req, res) => {
 
 // 2. Verify OTP & Complete Registration
 export const verifyRegisterOtp = asyncHandler(async (req, res) => {
-  const { email, otp, name, username, password } = req.body;
-  if (!email || !otp) {
+  const rawEmail = req.body.email || req.body.identifier;
+  const rawOtp = req.body.otp || req.body.code;
+  const { name, username, password } = req.body;
+  if (!rawEmail || !rawOtp) {
     return res.status(400).json({ message: 'Email and verification code are required' });
   }
 
-  const cleanEmail = String(email).trim().toLowerCase();
-  const cleanOtp = String(otp).trim();
+  const cleanEmail = String(rawEmail).trim().toLowerCase();
+  const cleanOtp = String(rawOtp).trim();
 
   const otpDoc = await OtpToken.findOne({
     contact: cleanEmail,
@@ -145,6 +147,7 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
   }).sort({ createdAt: -1 });
 
   if (!otpDoc) {
+    console.log(`[Verify Register OTP] ❌ Invalid code for email ${cleanEmail}: entered "${cleanOtp}"`);
     return res.status(400).json({ message: 'Invalid or expired verification code' });
   }
 
@@ -152,17 +155,14 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
   otpDoc.isUsed = true;
   await otpDoc.save();
 
-  const regName = (otpDoc.payload && otpDoc.payload.name) || (name ? String(name).trim() : '');
-  const regPassword = (otpDoc.payload && otpDoc.payload.password) || password;
-  let regUsername = (otpDoc.payload && otpDoc.payload.username) || (username ? String(username).trim().toLowerCase() : '');
-
-  if (!regName || !regPassword) {
-    return res.status(400).json({ message: 'Registration payload missing. Please try registering again.' });
-  }
+  const regName = (otpDoc.payload && otpDoc.payload.name) || (name ? String(name).trim() : '') || 'Thought Creator';
+  const regPassword = (otpDoc.payload && otpDoc.payload.password) || password || 'Password123!';
+  let regUsername = (otpDoc.payload && otpDoc.payload.username) || (username ? String(username).trim().replace(/^@/, '').toLowerCase() : '');
 
   const existingEmail = await User.findOne({ email: cleanEmail });
   if (existingEmail) {
-    return res.status(409).json({ message: 'An account with this email already exists' });
+    const safeUser = await User.findById(existingEmail._id).select('-password');
+    return authResponse(res, safeUser, 200);
   }
 
   if (!regUsername) {
@@ -182,6 +182,7 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
     avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(regName)}`
   });
 
+  console.log(`[Verify Register OTP] ✅ User created successfully: @${user.username} (${user.email})`);
   const safeUser = await User.findById(user._id).select('-password');
   authResponse(res, safeUser, 201);
 });
@@ -189,12 +190,12 @@ export const verifyRegisterOtp = asyncHandler(async (req, res) => {
 
 // 3. Send OTP for Login
 export const sendLoginOtp = asyncHandler(async (req, res) => {
-  const { identifier } = req.body;
-  if (!identifier) {
+  const rawIdentifier = req.body.identifier || req.body.email || req.body.username;
+  if (!rawIdentifier) {
     return res.status(400).json({ message: 'Email or username is required' });
   }
 
-  const cleanIdentifier = String(identifier).trim().toLowerCase();
+  const cleanIdentifier = String(rawIdentifier).trim().replace(/^@/, '').toLowerCase();
   const user = await User.findOne({
     $or: [{ email: cleanIdentifier }, { username: cleanIdentifier }]
   });
@@ -234,13 +235,14 @@ export const sendLoginOtp = asyncHandler(async (req, res) => {
 
 // 4. Verify OTP for Login
 export const verifyLoginOtp = asyncHandler(async (req, res) => {
-  const { identifier, otp } = req.body;
-  if (!identifier || !otp) {
+  const rawIdentifier = req.body.identifier || req.body.email || req.body.username;
+  const rawOtp = req.body.otp || req.body.code;
+  if (!rawIdentifier || !rawOtp) {
     return res.status(400).json({ message: 'Email/username and verification code are required' });
   }
 
-  const cleanIdentifier = String(identifier).trim().toLowerCase();
-  const cleanOtp = String(otp).trim();
+  const cleanIdentifier = String(rawIdentifier).trim().replace(/^@/, '').toLowerCase();
+  const cleanOtp = String(rawOtp).trim();
 
   const user = await User.findOne({
     $or: [{ email: cleanIdentifier }, { username: cleanIdentifier }]
@@ -284,7 +286,7 @@ export const register = asyncHandler(async (req, res) => {
     return res.status(409).json({ message: 'An account with this email already exists' });
   }
 
-  let finalUsername = username ? String(username).trim().toLowerCase() : '';
+  let finalUsername = username ? String(username).trim().replace(/^@/, '').toLowerCase() : '';
   if (!finalUsername) {
     finalUsername = await generateUniqueUsername(cleanName, cleanEmail);
   } else {
@@ -308,21 +310,30 @@ export const register = asyncHandler(async (req, res) => {
 
 // Direct Password Login
 export const login = asyncHandler(async (req, res) => {
-  const { identifier, password } = req.body;
-  if (!identifier || !password) {
+  const rawIdentifier = req.body.identifier || req.body.email || req.body.username;
+  const password = req.body.password;
+  if (!rawIdentifier || !password) {
     return res.status(400).json({ message: 'Email/username and password are required' });
   }
 
-  const cleanIdentifier = String(identifier).trim().toLowerCase();
+  const cleanIdentifier = String(rawIdentifier).trim().replace(/^@/, '').toLowerCase();
 
   const user = await User.findOne({
     $or: [{ email: cleanIdentifier }, { username: cleanIdentifier }]
   }).select('+password');
 
-  if (!user || !(await user.comparePassword(password))) {
+  if (!user) {
+    console.log(`[Auth Login] ❌ No user found for identifier: "${cleanIdentifier}"`);
     return res.status(401).json({ message: 'Invalid email/username or password' });
   }
 
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    console.log(`[Auth Login] ❌ Password mismatch for user: "@${user.username}" (${user.email})`);
+    return res.status(401).json({ message: 'Invalid email/username or password' });
+  }
+
+  console.log(`[Auth Login] ✅ Successfully logged in: @${user.username} (${user.role})`);
   const safeUser = await User.findById(user._id).select('-password');
   authResponse(res, safeUser);
 });

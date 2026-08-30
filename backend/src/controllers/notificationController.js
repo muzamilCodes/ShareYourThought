@@ -2,22 +2,37 @@ import Notification from '../models/Notification.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const listNotifications = asyncHandler(async (req, res) => {
-  const notifications = await Notification.find({ recipient: req.user._id })
-    .sort({ createdAt: -1 })
-    .populate('actor', 'name username avatar')
-    .populate('thought', 'content category imageUrl')
-    .populate('comment', 'content');
-  const unreadCount = notifications.filter((item) => !item.read).length;
+  const [notifications, unreadCount] = await Promise.all([
+    Notification.find({ recipient: req.user._id })
+      .populate('actor', 'name username avatar')
+      .populate('thought', 'content imageUrl')
+      .populate('comment', 'content')
+      .sort({ createdAt: -1 })
+      .limit(60),
+    Notification.countDocuments({ recipient: req.user._id, read: false })
+  ]);
+
   res.json({ notifications, unreadCount });
 });
 
-export const markRead = asyncHandler(async (req, res) => {
-  const notification = await Notification.findOneAndUpdate({ _id: req.params.id, recipient: req.user._id }, { read: true }, { new: true });
+export const markNotificationRead = asyncHandler(async (req, res) => {
+  const notification = await Notification.findOne({ _id: req.params.id, recipient: req.user._id });
   if (!notification) return res.status(404).json({ message: 'Notification not found' });
-  res.json({ notification });
+
+  notification.read = true;
+  await notification.save();
+
+  res.json({ success: true, notification });
 });
 
-export const markAllRead = asyncHandler(async (req, res) => {
-  await Notification.updateMany({ recipient: req.user._id, read: false }, { read: true });
+export const markAllNotificationsRead = asyncHandler(async (req, res) => {
+  await Notification.updateMany({ recipient: req.user._id, read: false }, { $set: { read: true } });
   res.json({ message: 'All notifications marked as read' });
+});
+
+export const deleteNotification = asyncHandler(async (req, res) => {
+  const notification = await Notification.findOneAndDelete({ _id: req.params.id, recipient: req.user._id });
+  if (!notification) return res.status(404).json({ message: 'Notification not found' });
+
+  res.json({ success: true, message: 'Notification deleted' });
 });

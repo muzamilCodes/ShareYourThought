@@ -9,6 +9,7 @@ import { FeedSkeleton } from '../components/SkeletonLoader';
 import { StoryTray } from '../components/StoryTray';
 import { MobileSuggestedUsers } from '../components/MobileSuggestedUsers';
 import { InstagramRightRail } from '../components/InstagramRightRail';
+import { DailyThoughtSpotlight } from '../components/DailyThoughtSpotlight';
 import { useSession } from '../hooks/useSession';
 import { api } from '../lib/api';
 import type { Category, Thought } from '../types';
@@ -23,7 +24,7 @@ export default function HomePage() {
 
   const fetchFeed = (sortMode: 'trending' | 'newest' | 'views' | 'popular' | 'following') => {
     setLoading(true);
-    api.getThoughts({ sort: sortMode, limit: 20 }, session?.token)
+    api.getThoughts(sortMode, 1, 20, session?.token)
       .then((feed) => {
         setThoughts(feed.thoughts || []);
         setTotalCount(feed.total || 0);
@@ -96,6 +97,9 @@ export default function HomePage() {
               </span>
             </Link>
           </div>
+
+          {/* Daily Thought of the Day Spotlight */}
+          <DailyThoughtSpotlight />
 
           {/* Feed Filter Sorting Header */}
           <div

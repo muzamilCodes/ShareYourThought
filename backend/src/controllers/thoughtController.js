@@ -425,4 +425,46 @@ export const getPlatformStats = asyncHandler(async (_req, res) => {
   });
 });
 
+export const getDailyFeaturedThought = asyncHandler(async (_req, res) => {
+  // 1. Look for explicitly featured thought first
+  let featuredThought = await Thought.findOne({ featured: true, isStory: { $ne: true } })
+    .populate('author', 'name username avatar role isPrivate')
+    .sort({ updatedAt: -1 });
+
+  // 2. If none, pick the top viewed/liked thought from the last 7 days
+  if (!featuredThought) {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    featuredThought = await Thought.findOne({ isStory: { $ne: true }, createdAt: { $gte: sevenDaysAgo } })
+      .populate('author', 'name username avatar role isPrivate')
+      .sort({ viewsCount: -1, createdAt: -1 });
+  }
+
+  // 3. Fallback to latest thought
+  if (!featuredThought) {
+    featuredThought = await Thought.findOne({ isStory: { $ne: true } })
+      .populate('author', 'name username avatar role isPrivate')
+      .sort({ createdAt: -1 });
+  }
+
+  res.json({ thought: featuredThought });
+});
+
+export const toggleFeatureThought = asyncHandler(async (req, res) => {
+  const isSuperadmin = req.user.role === 'admin' || req.user.username === 'burhan';
+  if (!isSuperadmin) {
+    return res.status(403).json({ message: 'Only administrators can feature thoughts' });
+  }
+
+  const thought = await Thought.findById(req.params.id);
+  if (!thought) return res.status(404).json({ message: 'Thought not found' });
+
+  thought.featured = !thought.featured;
+  await thought.save();
+
+  res.json({ success: true, featured: thought.featured, thought });
+});
+
+
 

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import { fileToCompressedDataUrl } from '../lib/imageUtils';
-import type { Category, Comment } from '../types';
+import { AiAssistantToolbar } from './AiAssistantToolbar';
+import type { Category, Comment, Draft } from '../types';
 
 const SUGGESTED_TAGS = ['reflection', 'mindset', 'life', 'technology', 'creativity', 'philosophy', 'growth'];
 
@@ -35,6 +36,15 @@ export function CreateThought({
   const [loading, setLoading] = useState(false);
   const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
   const [imageProcessing, setImageProcessing] = useState(false);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+
+  useEffect(() => {
+    if (session?.token) {
+      api.getDrafts(session.token).then((res) => setDrafts(res.drafts || [])).catch(() => {});
+    }
+  }, [session]);
 
   useEffect(() => {
     if (!isCustomCategory && categories.length && !form.category) {
@@ -89,9 +99,54 @@ export function CreateThought({
       .map((t) => t.trim().replace(/^#/, '').toLowerCase())
       .filter(Boolean);
 
-    if (!currentTags.includes(tag.toLowerCase())) {
-      const updated = [...currentTags, tag.toLowerCase()].join(', ');
+    const newTag = tag.trim().replace(/^#/, '').toLowerCase();
+    if (!currentTags.includes(newTag)) {
+      const updated = [...currentTags, newTag].join(', ');
       setForm((prev) => ({ ...prev, hashtags: updated }));
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!session?.token) {
+      setStatus('Please log in to save drafts.');
+      return;
+    }
+    if (!form.content.trim()) {
+      setStatus('Please write something before saving a draft.');
+      return;
+    }
+    setSavingDraft(true);
+    try {
+      const finalCategory = isCustomCategory ? customCategory.trim() || 'Life' : form.category;
+      const res = await api.createDraft({ ...form, category: finalCategory, isStory }, session.token);
+      setDrafts((prev) => [res.draft, ...prev]);
+      setStatus('Draft saved successfully! 💾');
+    } catch (e: any) {
+      setStatus(e?.message || 'Failed to save draft.');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleLoadDraft = (draft: Draft) => {
+    setForm({
+      content: draft.content || '',
+      imageUrl: draft.imageUrl || '',
+      category: draft.category || 'Life',
+      hashtags: draft.hashtags || ''
+    });
+    setIsStory(Boolean(draft.isStory));
+    setShowDrafts(false);
+    setStatus('Draft restored into editor. ✍️');
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (!session?.token) return;
+    try {
+      await api.deleteDraft(draftId, session.token);
+      setDrafts((prev) => prev.filter((d) => d._id !== draftId));
+    } catch {
+      // ignore
     }
   };
 
@@ -150,7 +205,102 @@ export function CreateThought({
   };
 
   return (
-    <div className="form-card" style={{ padding: '24px', borderRadius: '20px' }}>
+    <div className="form-card" style={{ padding: '24px', borderRadius: '20px', position: 'relative' }}>
+      {/* Drafts Drawer Modal */}
+      {showDrafts && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={() => setShowDrafts(false)}
+        >
+          <div
+            style={{
+              background: 'var(--paper)',
+              border: '1px solid var(--line)',
+              borderRadius: '16px',
+              padding: '20px',
+              width: '100%',
+              maxWidth: '440px',
+              maxHeight: '75vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>📁 Saved Thought Drafts ({drafts.length})</h3>
+              <button
+                type="button"
+                onClick={() => setShowDrafts(false)}
+                style={{ background: 'none', border: 'none', fontSize: '1.2rem', color: 'var(--muted)', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {drafts.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.88rem', padding: '20px 0' }}>
+                  No saved drafts yet.
+                </p>
+              ) : (
+                drafts.map((d) => (
+                  <div
+                    key={d._id}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      background: 'var(--dark-soft)',
+                      border: '1px solid var(--line)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '12px'
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {d.content || '(Untitled Draft)'}
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>#{d.category || 'Life'}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleLoadDraft(d)}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                      >
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDraft(d._id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#ef4444' }}
+                        title="Delete draft"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <form className="form-grid" onSubmit={handleSubmit}>
         {/* Thought Text Input with Character Count */}
         <div className="field">
@@ -158,15 +308,35 @@ export function CreateThought({
             <label htmlFor="content" style={{ fontWeight: 700 }}>
               Your Thought
             </label>
-            <span
-              style={{
-                fontSize: '0.78rem',
-                color: form.content.length > 550 ? '#c86d34' : 'var(--muted)',
-                fontWeight: 600
-              }}
-            >
-              {form.content.length} / 600
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {drafts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDrafts(true)}
+                  style={{
+                    background: 'rgba(200, 109, 52, 0.12)',
+                    border: '1px solid rgba(200, 109, 52, 0.3)',
+                    color: 'var(--ember)',
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📁 Drafts ({drafts.length})
+                </button>
+              )}
+              <span
+                style={{
+                  fontSize: '0.78rem',
+                  color: form.content.length > 550 ? '#c86d34' : 'var(--muted)',
+                  fontWeight: 600
+                }}
+              >
+                {form.content.length} / 600
+              </span>
+            </div>
           </div>
           <textarea
             className="textarea"
@@ -179,6 +349,19 @@ export function CreateThought({
             maxLength={600}
             rows={5}
             style={{ fontSize: '1.02rem', lineHeight: '1.55' }}
+          />
+
+          {/* AI Thought Assistant Toolbar */}
+          <AiAssistantToolbar
+            text={form.content}
+            token={session?.token}
+            onApplyResult={(res, mode) => {
+              if (mode === 'hashtags') {
+                handleAddTag(res);
+              } else {
+                setForm((prev) => ({ ...prev, content: res }));
+              }
+            }}
           />
         </div>
 
@@ -522,12 +705,21 @@ export function CreateThought({
         </div>
 
         {/* Submit Actions */}
-        <div className="form-actions" style={{ marginTop: '8px' }}>
-          <button className="button" type="submit" disabled={loading || imageProcessing} style={{ flex: 1 }}>
+        <div className="form-actions" style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="button" type="submit" disabled={loading || imageProcessing} style={{ flex: 2, minWidth: '160px' }}>
             {loading ? 'Publishing Thought…' : '✨ Publish Thought'}
           </button>
           <button
             className="button-outline"
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={savingDraft || loading}
+            style={{ flex: 1, minWidth: '110px' }}
+          >
+            {savingDraft ? 'Saving…' : '💾 Save Draft'}
+          </button>
+          <button
+            className="button-ghost"
             type="button"
             onClick={() => {
               setForm({ content: '', imageUrl: '', category: categories[0]?.name || 'Life', hashtags: '' });
@@ -576,7 +768,7 @@ function CommentItem({
 
     setSubmitting(true);
     try {
-      await api.createComment(thoughtId, { content: reply.trim(), parentComment: comment._id }, session.token);
+      await api.createComment(thoughtId, { content: reply.trim(), parentCommentId: comment._id }, session.token);
       setReply('');
       setReplying(false);
       onRefresh();

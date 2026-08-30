@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { createNotification } from '../utils/notifications.js';
 
 function safeUser(u) {
   if (!u) return null;
@@ -19,7 +20,6 @@ function safeUser(u) {
 export const getConversations = asyncHandler(async (req, res) => {
   const currentUserId = req.user._id;
 
-  // Find all messages involving current user
   const messages = await Message.find({
     $or: [{ sender: currentUserId }, { recipient: currentUserId }]
   })
@@ -44,13 +44,13 @@ export const getConversations = asyncHandler(async (req, res) => {
           content: msg.content,
           createdAt: msg.createdAt,
           isSender,
-          read: msg.read
+          read: msg.read,
+          status: msg.status || (msg.read ? 'seen' : 'delivered')
         },
         unreadCount: 0
       });
     }
 
-    // If incoming unread message
     if (!isSender && !msg.read) {
       const conv = conversationsMap.get(partnerId);
       conv.unreadCount += 1;
@@ -79,10 +79,10 @@ export const getMessages = asyncHandler(async (req, res) => {
 
   const partnerId = partner._id;
 
-  // Mark all incoming messages from partner as read
+  // Mark all incoming messages from partner as seen
   await Message.updateMany(
     { sender: partnerId, recipient: currentUserId, read: false },
-    { $set: { read: true } }
+    { $set: { read: true, status: 'seen', seenAt: new Date() } }
   );
 
   const messages = await Message.find({
@@ -92,7 +92,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     ]
   })
     .sort({ createdAt: 1 })
-    .limit(100)
+    .limit(150)
     .populate('sender', 'name username avatar')
     .populate('recipient', 'name username avatar');
 
@@ -123,27 +123,68 @@ export const sendMessage = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Recipient not found' });
   }
 
-  if (recipient._id.toString() === currentUserId.toString()) {
-    return res.status(400).json({ message: 'You cannot message yourself' });
-  }
-
   const message = await Message.create({
     sender: currentUserId,
     recipient: recipient._id,
-    content
+    content,
+    status: 'delivered'
   });
 
   const populated = await Message.findById(message._id)
     .populate('sender', 'name username avatar')
     .populate('recipient', 'name username avatar');
 
+  // Trigger push notification if available
+  await createNotification({
+    recipient: recipient._id,
+    actor: currentUserId,
+    type: 'message',
+    title: `${req.user.name} sent you a message`,
+    body: content.length > 60 ? `${content.substring(0, 57)}...` : content
+  }).catch(() => {});
+
   res.status(201).json({ message: populated });
 });
 
-export const getUnreadMessagesCount = asyncHandler(async (req, res) => {
-  const count = await Message.countDocuments({
+export const markMessageRead = asyncHandler(async (req, res) => {
+  const message = await Message.findOne({ _id: req.params.id, recipient: req.user._id });
+  if (!message) return res.status(404).json({ message: 'Message not found' });
+
+  message.read = true;
+  message.status = 'seen';
+  message.seenAt = new Date();
+  await message.save();
+
+  res.json({ success: true, message });
+});
+
+export const markAllUserMessagesRead = asyncHandler(async (req, res) => {
+  const targetId = req.params.userId;
+  await Message.updateMany(
+    { sender: targetId, recipient: req.user._id, read: false },
+    { $set: { read: true, status: 'seen', seenAt: new Date() } }
+  );
+
+  res.json({ success: true });
+});
+
+export const deleteMessage = asyncHandler(async (req, res) => {
+  const message = await Message.findById(req.params.id);
+  if (!message) return res.status(404).json({ message: 'Message not found' });
+
+  const userId = req.user._id.toString();
+  if (message.sender.toString() !== userId && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'You can only delete your own messages' });
+  }
+
+  await message.deleteOne();
+  res.json({ success: true, message: 'Message deleted' });
+});
+
+export const getUnreadCount = asyncHandler(async (req, res) => {
+  const unreadCount = await Message.countDocuments({
     recipient: req.user._id,
     read: false
   });
-  res.json({ unreadCount: count });
+  res.json({ unreadCount });
 });

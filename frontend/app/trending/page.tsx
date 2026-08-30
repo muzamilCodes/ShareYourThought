@@ -13,7 +13,7 @@ export default function TrendingPage() {
 
   useEffect(() => {
     api.trendingThoughts()
-      .then((data) => {
+      .then((data: { thoughts: Thought[] }) => {
         setThoughts(data.thoughts || []);
       })
       .catch(() => setThoughts([]))

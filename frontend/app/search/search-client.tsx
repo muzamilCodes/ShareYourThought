@@ -4,31 +4,77 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ThoughtCard } from '@/components/ThoughtCard';
 import { api } from '@/lib/api';
-import type { Thought, User } from '@/types';
+import type { Category, HashtagSummary, Thought, User } from '@/types';
 
-const POPULAR_TAGS = ['life', 'technology', 'mindset', 'creativity', 'motivation', 'education', 'business', 'growth'];
+const RECENT_SEARCHES_KEY = 'thoughtshare_recent_searches';
 
 export default function SearchClient({ initialQuery }: { initialQuery: string }) {
   const [query, setQuery] = useState(initialQuery);
-  const [activeTab, setActiveTab] = useState<'all' | 'thoughts' | 'people'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'thoughts' | 'creators' | 'hashtags' | 'categories'>('all');
   const [thoughts, setThoughts] = useState<Thought[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [trendingTags, setTrendingTags] = useState<HashtagSummary[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const runSearch = async (term: string) => {
-    if (!term.trim()) return;
-    setLoading(true);
-    setSearched(true);
+  useEffect(() => {
     try {
-      const [thoughtResults, userResults] = await Promise.allSettled([
-        api.searchThoughts(term),
-        api.searchUsers(term)
-      ]);
-      if (thoughtResults.status === 'fulfilled') setThoughts(thoughtResults.value.thoughts || []);
-      if (userResults.status === 'fulfilled') setUsers(userResults.value.users || []);
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) setRecentSearches(JSON.parse(stored));
     } catch {
       // ignore
+    }
+
+    api.getTrendingHashtags().then((res) => {
+      if (res?.hashtags) setTrendingTags(res.hashtags);
+    }).catch(() => {});
+  }, []);
+
+  const saveRecentSearch = (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    try {
+      const updated = [trimmed, ...recentSearches.filter((s) => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, 8);
+      setRecentSearches(updated);
+      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem(RECENT_SEARCHES_KEY);
+  };
+
+  const runSearch = async (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setSearched(true);
+    saveRecentSearch(trimmed);
+
+    try {
+      const res = await api.universalSearch(trimmed);
+      setThoughts(res.thoughts || []);
+      setUsers(res.users || []);
+      setHashtags(res.hashtags || []);
+      setCategories(res.categories || []);
+    } catch {
+      // fallback
+      try {
+        const [thoughtResults, userResults] = await Promise.allSettled([
+          api.searchThoughts(trimmed),
+          api.searchUsers(trimmed)
+        ]);
+        if (thoughtResults.status === 'fulfilled') setThoughts(thoughtResults.value.thoughts || []);
+        if (userResults.status === 'fulfilled') setUsers(userResults.value.users || []);
+      } catch {
+        // ignore
+      }
     } finally {
       setLoading(false);
     }
@@ -50,16 +96,19 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
   };
 
   const handleTagClick = (tag: string) => {
-    setQuery(tag);
-    runSearch(tag);
+    const cleanTag = tag.replace(/^#/, '');
+    setQuery(cleanTag);
+    runSearch(cleanTag);
   };
 
+  const totalResults = thoughts.length + users.length + hashtags.length + categories.length;
+
   return (
-    <div className="page container" style={{ maxWidth: '650px' }}>
+    <div className="page container" style={{ maxWidth: '680px', margin: '20px auto 60px', padding: '0 16px' }}>
       {/* Search Header & Input Bar */}
-      <section style={{ marginBottom: '24px' }}>
+      <section style={{ marginBottom: '20px' }}>
         <h1 className="display-title" style={{ fontSize: '1.75rem', marginBottom: '14px', color: 'var(--ink)' }}>
-          🔍 Search Share Your Thoughts
+          🔍 Universal Search
         </h1>
 
         <form
@@ -82,7 +131,7 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search thoughts, authors, or #hashtags…"
+            placeholder="Search thoughts, creators, #hashtags, categories…"
             style={{
               flex: 1,
               border: 'none',
@@ -95,198 +144,263 @@ export default function SearchClient({ initialQuery }: { initialQuery: string })
           {query ? (
             <button
               type="button"
-              onClick={() => setQuery('')}
+              onClick={() => {
+                setQuery('');
+                setSearched(false);
+              }}
               style={{
                 background: 'transparent',
                 border: 'none',
                 color: 'var(--muted)',
                 cursor: 'pointer',
-                fontSize: '0.9rem',
-                padding: '4px'
+                fontSize: '0.9rem'
               }}
             >
               ✕
             </button>
           ) : null}
-          <button
-            type="submit"
-            className="button"
-            style={{ minHeight: '36px', padding: '0 16px', fontSize: '0.86rem' }}
-            disabled={loading}
-          >
-            {loading ? 'Searching…' : 'Search'}
+          <button type="submit" className="btn btn-primary" style={{ padding: '6px 14px', fontSize: '0.84rem' }}>
+            Search
           </button>
         </form>
+      </section>
 
-        {/* Popular Tags Quick Filters */}
-        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600 }}>Suggested:</span>
-          {POPULAR_TAGS.map((tag) => (
+      {/* Recent Searches */}
+      {!searched && recentSearches.length > 0 && (
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '0.80rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              🕒 Recent Searches
+            </span>
             <button
-              key={tag}
               type="button"
-              onClick={() => handleTagClick(tag)}
-              className="category-pill"
+              onClick={clearRecentSearches}
+              style={{ background: 'none', border: 'none', fontSize: '0.74rem', color: 'var(--ember)', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Clear
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {recentSearches.map((term) => (
+              <button
+                key={term}
+                type="button"
+                onClick={() => {
+                  setQuery(term);
+                  runSearch(term);
+                }}
+                style={{
+                  background: 'var(--dark-soft)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '20px',
+                  padding: '4px 12px',
+                  fontSize: '0.80rem',
+                  color: 'var(--ink)',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trending Hashtags Spotlight */}
+      {!searched && trendingTags.length > 0 && (
+        <div style={{ marginBottom: '28px' }}>
+          <span style={{ fontSize: '0.80rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '8px' }}>
+            🔥 Trending Topics & Hashtags
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {trendingTags.map((h) => (
+              <button
+                key={h.tag}
+                type="button"
+                onClick={() => handleTagClick(h.tag)}
+                style={{
+                  background: 'var(--paper)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '20px',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  color: 'var(--ink)',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>#{h.tag}</span>
+                <span style={{ fontSize: '0.70rem', color: 'var(--muted)', fontWeight: 500 }}>
+                  ({h.count} {h.count === 1 ? 'post' : 'posts'})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      {searched && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            paddingBottom: '8px',
+            marginBottom: '20px',
+            borderBottom: '1px solid var(--line)'
+          }}
+        >
+          {[
+            { id: 'all', label: `All (${totalResults})` },
+            { id: 'thoughts', label: `Thoughts (${thoughts.length})` },
+            { id: 'creators', label: `Creators (${users.length})` },
+            { id: 'hashtags', label: `Hashtags (${hashtags.length})` },
+            { id: 'categories', label: `Categories (${categories.length})` }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id as any)}
               style={{
-                fontSize: '0.76rem',
-                padding: '4px 10px',
+                background: activeTab === tab.id ? 'var(--ember)' : 'var(--dark-soft)',
+                color: activeTab === tab.id ? '#ffffff' : 'var(--muted)',
+                border: 'none',
+                borderRadius: '20px',
+                padding: '6px 14px',
+                fontSize: '0.80rem',
+                fontWeight: 700,
                 cursor: 'pointer',
-                background: query.toLowerCase() === tag ? 'rgba(200, 109, 52, 0.15)' : 'var(--paper)',
-                color: query.toLowerCase() === tag ? 'var(--ember)' : 'var(--ink)'
+                whiteSpace: 'nowrap',
+                transition: 'all 120ms ease'
               }}
             >
-              #{tag}
+              {tab.label}
             </button>
           ))}
         </div>
-      </section>
+      )}
 
-      {/* Filter Tabs */}
-      {searched ? (
-        <div
-          className="feed-sort-tabs"
-          style={{ width: '100%', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}
-        >
-          <button
-            type="button"
-            className={`feed-sort-tab ${activeTab === 'all' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('all')}
-            style={{ flex: 1 }}
-          >
-            ⚡ All ({thoughts.length + users.length})
-          </button>
-          <button
-            type="button"
-            className={`feed-sort-tab ${activeTab === 'thoughts' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('thoughts')}
-            style={{ flex: 1 }}
-          >
-            ✍️ Thoughts ({thoughts.length})
-          </button>
-          <button
-            type="button"
-            className={`feed-sort-tab ${activeTab === 'people' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('people')}
-            style={{ flex: 1 }}
-          >
-            👥 People ({users.length})
-          </button>
-        </div>
-      ) : null}
-
-      {/* Search Results Area */}
+      {/* Results Content */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <p className="empty-state">Searching across Share Your Thoughts…</p>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+          <div style={{ fontSize: '1.8rem', marginBottom: '8px' }}>🔎</div>
+          <p style={{ fontWeight: 600 }}>Searching across thoughts and creators...</p>
         </div>
-      ) : !searched ? (
-        <div style={{ textAlign: 'center', padding: '48px 16px', background: 'var(--paper)', borderRadius: '20px', border: '1px solid var(--line)' }}>
-          <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>🔎</span>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
-            Search anything on Share Your Thoughts
-          </h3>
-          <p className="section-copy" style={{ margin: '0 auto', fontSize: '0.9rem', maxWidth: '38ch' }}>
-            Type a username, keyword, phrase, or tap on suggested hashtags to discover insights.
-          </p>
+      ) : searched && totalResults === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🍃</div>
+          <h3>No matches found for "{query}"</h3>
+          <p style={{ fontSize: '0.88rem' }}>Try searching for a different keyword, creator name, or topic.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* People Section */}
-          {(activeTab === 'all' || activeTab === 'people') && users.length ? (
-            <div>
-              <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
-                  People ({users.length})
-                </h3>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {users.map((user) => {
-                  const uAvatar =
-                    user.avatar ||
-                    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
-                  return (
-                    <div
-                      key={user.username}
-                      className="note-card"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '14px 16px',
-                        borderRadius: '16px',
-                        background: 'var(--paper)',
-                        border: '1px solid var(--line)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                        <img
-                          src={uAvatar}
-                          alt={user.name}
-                          style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover' }}
-                        />
-                        <div style={{ minWidth: 0 }}>
-                          <Link
-                            href={`/profile/${user.username}`}
-                            style={{ fontWeight: 800, color: 'var(--ink)', fontSize: '0.96rem', textDecoration: 'none' }}
-                          >
-                            {user.name}
-                          </Link>
-                          <div style={{ fontSize: '0.80rem', color: 'var(--muted)' }}>@{user.username}</div>
-                          {user.bio ? (
-                            <p style={{ fontSize: '0.82rem', color: 'var(--muted)', margin: '4px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '320px' }}>
-                              {user.bio}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      <Link href={`/profile/${user.username}`} className="button" style={{ fontSize: '0.80rem', padding: '6px 14px', minHeight: 'auto' }}>
-                        View
-                      </Link>
+        <div>
+          {/* Creators Section */}
+          {(activeTab === 'all' || activeTab === 'creators') && users.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 12px 0' }}>👤 Creators</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+                {users.map((u) => (
+                  <Link
+                    key={u._id || u.username}
+                    href={`/profile/${u.username}`}
+                    style={{
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      background: 'var(--paper)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}
+                  >
+                    <img
+                      src={u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username}`}
+                      alt={u.name}
+                      style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)' }}>{u.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>@{u.username}</div>
                     </div>
-                  );
-                })}
+                  </Link>
+                ))}
               </div>
-            </div>
-          ) : null}
-
-          {/* Thoughts Section */}
-          {(activeTab === 'all' || activeTab === 'thoughts') && (
-            <div>
-              {activeTab === 'all' && users.length && thoughts.length ? (
-                <div style={{ marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
-                    Thoughts ({thoughts.length})
-                  </h3>
-                </div>
-              ) : null}
-
-              {thoughts.length ? (
-                <div className="thought-grid">
-                  {thoughts.map((thought) => (
-                    <ThoughtCard key={thought._id} thought={thought} onDeleted={handleDeleted} />
-                  ))}
-                </div>
-              ) : activeTab === 'thoughts' ? (
-                <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--paper)', borderRadius: '16px', border: '1px solid var(--line)' }}>
-                  <p className="empty-state" style={{ margin: 0 }}>No thoughts matched "{query}".</p>
-                </div>
-              ) : null}
             </div>
           )}
 
-          {/* Empty Results Case */}
-          {!thoughts.length && !users.length ? (
-            <div style={{ textAlign: 'center', padding: '48px 16px', background: 'var(--paper)', borderRadius: '20px', border: '1px solid var(--line)' }}>
-              <span style={{ fontSize: '2.4rem', display: 'block', marginBottom: '8px' }}>🍃</span>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--ink)' }}>
-                No results found
-              </h3>
-              <p className="section-copy" style={{ margin: '0 auto', fontSize: '0.9rem', maxWidth: '38ch' }}>
-                We couldn't find any thoughts or people matching "{query}". Try another keyword or hashtag.
-              </p>
+          {/* Hashtags Section */}
+          {(activeTab === 'all' || activeTab === 'hashtags') && hashtags.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 12px 0' }}>#️⃣ Hashtags</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {hashtags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleTagClick(tag)}
+                    style={{
+                      background: 'var(--paper)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '20px',
+                      padding: '6px 14px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      color: 'var(--ember)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : null}
+          )}
+
+          {/* Categories Section */}
+          {(activeTab === 'all' || activeTab === 'categories') && categories.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 12px 0' }}>🏷️ Categories</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.slug}
+                    href={`/category/${cat.slug}`}
+                    style={{
+                      textDecoration: 'none',
+                      background: 'var(--paper)',
+                      border: '1px solid var(--line)',
+                      borderRadius: '12px',
+                      padding: '8px 14px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      color: 'var(--ink)'
+                    }}
+                  >
+                    #{cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Thoughts Section */}
+          {(activeTab === 'all' || activeTab === 'thoughts') && thoughts.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 12px 0' }}>✍️ Thoughts</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {thoughts.map((thought) => (
+                  <ThoughtCard key={thought._id} thought={thought} onDeleted={handleDeleted} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

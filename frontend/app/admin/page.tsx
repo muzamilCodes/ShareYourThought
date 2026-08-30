@@ -7,7 +7,7 @@ import { useSession } from '@/hooks/useSession';
 import { playSuccessSound } from '@/lib/soundUtils';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { SocialActivityTimeline } from '@/components/SocialActivityTimeline';
-import type { Category, Thought, User } from '@/types';
+import type { Category, Report, Thought, User } from '@/types';
 
 interface AdminStats {
   totalUsers: number;
@@ -27,11 +27,16 @@ interface AdminStats {
 
 export default function AdminPage() {
   const { session, ready } = useSession();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'thoughts' | 'categories'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'thoughts' | 'categories' | 'reports'>('overview');
 
   // Stats State
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // Reports State
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsFilter, setReportsFilter] = useState<'pending' | 'resolved' | 'dismissed' | ''>('pending');
+  const [loadingReports, setLoadingReports] = useState(false);
 
   // Users Management State
   const [users, setUsers] = useState<User[]>([]);
@@ -175,8 +180,29 @@ export default function AdminPage() {
       fetchUsers();
       fetchThoughts();
       fetchCategories();
+      fetchReports();
     }
   }, [session?.token]);
+
+  const fetchReports = async () => {
+    if (!session?.token) return;
+    setLoadingReports(true);
+    try {
+      const res = await api.getAdminReports(reportsFilter || undefined, session.token);
+      setReports(res.reports || []);
+    } catch {
+      setReports([]);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+
+  // Tab changes / filters
+  useEffect(() => {
+    if (session?.token && activeTab === 'reports') {
+      fetchReports();
+    }
+  }, [session?.token, activeTab, reportsFilter]);
 
   // Tab changes / filters
   useEffect(() => {
@@ -190,6 +216,32 @@ export default function AdminPage() {
       fetchThoughts();
     }
   }, [session?.token, activeTab, thoughtPage, thoughtCategoryFilter, thoughtFeaturedFilter, thoughtSearch]);
+
+  const handleUpdateReport = async (reportId: string, status: 'resolved' | 'dismissed') => {
+    if (!session?.token) return;
+    try {
+      await api.updateReportStatus(reportId, status, `Marked ${status} by admin`, session.token);
+      playSuccessSound();
+      showToast(`Report marked as ${status}`);
+      fetchReports();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update report');
+    }
+  };
+
+  const handleDeleteReportedThought = async (thoughtId: string, reportId: string) => {
+    if (!session?.token) return;
+    try {
+      await api.deleteThought(thoughtId, session.token);
+      await api.updateReportStatus(reportId, 'resolved', 'Content deleted by admin', session.token);
+      playSuccessSound();
+      showToast('Offending thought deleted and report resolved.');
+      fetchReports();
+      fetchThoughts();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to delete reported thought');
+    }
+  };
 
   // Handle Role Toggle (Promote/Demote)
   const handleToggleRole = async (user: User) => {
@@ -672,6 +724,26 @@ export default function AdminPage() {
           }}
         >
           🏷️ Categories ({categories.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('reports')}
+          style={{
+            flex: 1,
+            padding: '10px 18px',
+            borderRadius: '12px',
+            border: 'none',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            background: activeTab === 'reports' ? 'var(--paper)' : 'transparent',
+            color: activeTab === 'reports' ? '#ef4444' : 'var(--muted)',
+            boxShadow: activeTab === 'reports' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 150ms ease'
+          }}
+        >
+          🚨 Reports ({reports.filter((r) => r.status === 'pending').length})
         </button>
       </div>
 
@@ -1353,6 +1425,162 @@ export default function AdminPage() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          TAB 5: REPORTS MODERATION QUEUE
+      ========================================================= */}
+      {activeTab === 'reports' && (
+        <div style={{ background: 'var(--paper)', border: '1px solid var(--line)', borderRadius: '20px', padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
+                🚨 Community Reports & Moderation
+              </h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--muted)' }}>
+                Review user flags for spam, hate speech, harassment, and policy violations.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['pending', 'resolved', 'dismissed', ''] as const).map((statusKey) => (
+                <button
+                  key={statusKey}
+                  type="button"
+                  onClick={() => setReportsFilter(statusKey)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    fontSize: '0.80rem',
+                    fontWeight: 700,
+                    border: 'none',
+                    background: reportsFilter === statusKey ? 'var(--ember)' : 'var(--dark-soft)',
+                    color: reportsFilter === statusKey ? '#ffffff' : 'var(--muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {statusKey === '' ? 'All' : statusKey.charAt(0).toUpperCase() + statusKey.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {loadingReports ? (
+            <p style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+              Loading reports queue...
+            </p>
+          ) : reports.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '50px 0', color: 'var(--muted)' }}>
+              <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>🛡️</span>
+              <h3 style={{ margin: 0, color: 'var(--ink)' }}>All Clean!</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem' }}>
+                No {reportsFilter || ''} community reports found.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {reports.map((report) => (
+                <div
+                  key={report._id}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: '16px',
+                    background: 'var(--dark-soft)',
+                    border: '1px solid var(--line)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span
+                          style={{
+                            background: report.status === 'pending' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                            color: report.status === 'pending' ? '#ef4444' : '#10b981',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {report.status}
+                        </span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--ink)' }}>
+                          Reason: {report.reason?.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.80rem', color: 'var(--muted)' }}>
+                        Reported by{' '}
+                        <strong>@{typeof report.reporter === 'object' ? report.reporter?.username : 'user'}</strong> · Target:{' '}
+                        <span style={{ textTransform: 'capitalize' }}>{report.targetType}</span> (ID: {report.targetId})
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {report.targetType === 'thought' && (
+                        <>
+                          <Link
+                            href={`/thought/${report.targetId}`}
+                            className="button-ghost"
+                            style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                          >
+                            Inspect Thought →
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReportedThought(report.targetId, report._id)}
+                            style={{
+                              background: '#ef4444',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '4px 10px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            🗑️ Delete Content
+                          </button>
+                        </>
+                      )}
+
+                      {report.status === 'pending' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateReport(report._id, 'resolved')}
+                            className="btn btn-primary"
+                            style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                          >
+                            ✓ Resolve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateReport(report._id, 'dismissed')}
+                            className="button-ghost"
+                            style={{ fontSize: '0.76rem', padding: '4px 10px' }}
+                          >
+                            Dismiss
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {report.details && (
+                    <div style={{ background: 'var(--paper)', padding: '10px 14px', borderRadius: '10px', fontSize: '0.84rem', color: 'var(--ink)', fontStyle: 'italic' }}>
+                      "{report.details}"
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

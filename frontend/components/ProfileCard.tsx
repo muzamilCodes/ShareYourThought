@@ -93,6 +93,13 @@ export function ProfileCard({
 
         {isSelf ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <Link
+              href="/analytics"
+              className="button-outline"
+              style={{ fontSize: '0.84rem', padding: '6px 12px', minHeight: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ember)', fontWeight: 700 }}
+            >
+              <span>📊</span> Analytics
+            </Link>
             {profile.role === 'admin' && (
               <Link
                 href="/admin"

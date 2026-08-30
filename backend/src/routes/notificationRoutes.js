@@ -1,9 +1,19 @@
-import { Router } from 'express';
-import { listNotifications, markAllRead, markRead } from '../controllers/notificationController.js';
+import express from 'express';
+import {
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification
+} from '../controllers/notificationController.js';
 import { protect } from '../middleware/auth.js';
 
-const router = Router();
-router.get('/', protect, listNotifications);
-router.patch('/read-all', protect, markAllRead);
-router.patch('/:id/read', protect, markRead);
+const router = express.Router();
+
+router.use(protect);
+
+router.get('/', listNotifications);
+router.patch('/read-all', markAllNotificationsRead);
+router.patch('/:id/read', markNotificationRead);
+router.delete('/:id', deleteNotification);
+
 export default router;

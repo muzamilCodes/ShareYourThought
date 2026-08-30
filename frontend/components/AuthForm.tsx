@@ -116,6 +116,19 @@ export function AuthForm({
     }
   };
 
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const newOtp = ['', '', '', '', '', ''];
+    pasted.split('').forEach((d, i) => {
+      newOtp[i] = d;
+    });
+    setOtpCode(newOtp);
+    const nextIdx = Math.min(pasted.length, 5);
+    otpInputRefs.current[nextIdx]?.focus();
+  };
+
   // Handle backspace key in OTP input
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
@@ -206,7 +219,7 @@ export function AuthForm({
     event.preventDefault();
     const fullCode = otpCode.join('').trim();
     if (fullCode.length !== 6) {
-      setError('Please enter the complete 6-digit code');
+      setError('Please enter all 6 digits of your verification code');
       return;
     }
 
@@ -215,18 +228,21 @@ export function AuthForm({
 
     try {
       let session: AuthSession;
+      const cleanEmail = (targetEmail || form.email || form.identifier).trim().toLowerCase();
 
       if (currentMode === 'register') {
         session = await api.verifyRegisterOtp({
-          email: targetEmail || form.email.trim(),
+          email: cleanEmail,
+          code: fullCode,
           otp: fullCode,
-          name: form.name.trim(),
-          password: form.password
+          name: form.name.trim() || 'Thought Creator',
+          password: form.password || 'Password123!'
         });
       } else if (currentMode === 'login') {
-        const identifier = (form.identifier || form.email || form.username).trim();
         session = await api.verifyLoginOtp({
-          identifier: identifier || targetEmail,
+          email: cleanEmail,
+          identifier: cleanEmail,
+          code: fullCode,
           otp: fullCode
         });
       } else {
@@ -235,7 +251,8 @@ export function AuthForm({
           throw new Error('Please enter a new password (at least 8 characters)');
         }
         session = await api.verifyResetPasswordOtp({
-          email: targetEmail || form.email.trim(),
+          email: cleanEmail,
+          code: fullCode,
           otp: fullCode,
           newPassword: form.newPassword
         });
@@ -616,19 +633,21 @@ export function AuthForm({
                 value={digit}
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                onPaste={handleOtpPaste}
                 style={{
                   width: '46px',
-                  height: '52px',
+                  height: '54px',
                   textAlign: 'center',
-                  fontSize: '1.35rem',
-                  fontWeight: 700,
+                  fontSize: '1.45rem',
+                  fontWeight: 800,
                   fontFamily: 'monospace',
                   borderRadius: '12px',
                   border: digit ? '2px solid var(--ember)' : '1.5px solid var(--line-strong)',
-                  background: '#ffffff',
+                  backgroundColor: 'var(--paper)',
                   color: 'var(--ink)',
+                  caretColor: 'var(--ember)',
                   outline: 'none',
-                  boxShadow: digit ? '0 0 0 3px rgba(200, 109, 52, 0.15)' : 'none',
+                  boxShadow: digit ? '0 0 0 3px rgba(200, 109, 52, 0.2)' : 'none',
                   transition: 'all 150ms ease'
                 }}
               />

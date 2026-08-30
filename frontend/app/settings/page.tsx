@@ -107,11 +107,7 @@ export default function SettingsPage() {
 
     try {
       const data = await api.forgotPassword({ email: forgotEmail.trim() });
-      if (data.previewResetUrl) {
-        setForgotMessage(`Reset link generated: ${data.previewResetUrl}`);
-      } else {
-        setForgotMessage(data.message || 'If an account exists, a reset link was sent.');
-      }
+      setForgotMessage(data.message || 'If an account exists, a reset code was sent.');
     } catch (e) {
       setForgotMessage(e instanceof Error ? e.message : 'Failed to request reset');
     }
@@ -120,7 +116,7 @@ export default function SettingsPage() {
   const finishReset = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!passwordForm.email || !passwordForm.token || !passwordForm.password) {
-      setPasswordMessage('Email, token, and new password are required');
+      setPasswordMessage('Email, reset code, and new password are required');
       return;
     }
     setLoadingReset(true);

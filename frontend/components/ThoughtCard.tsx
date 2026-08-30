@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import { ConfirmModal } from './ConfirmModal';
 import { ShareModal } from './ShareModal';
+import { ReportModal } from './ReportModal';
 import { playSuccessSound } from '../lib/soundUtils';
 import type { Comment, Thought, User } from '../types';
 
@@ -75,6 +76,7 @@ export function ThoughtCard({
   const [views, setViews] = useState(thought.viewsCount || 0);
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Share Modal & Reaction states
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -87,7 +89,7 @@ export function ThoughtCard({
   const [editContent, setEditContent] = useState(thought.content);
   const [editCategory, setEditCategory] = useState(thought.category);
   const [editImageUrl, setEditImageUrl] = useState(thought.imageUrl || '');
-  const [editHashtags, setEditHashtags] = useState((thought.hashtags || []).join(', '));
+  const [editHashtags, setEditHashtags] = useState(Array.isArray(thought.hashtags) ? thought.hashtags.join(', ') : (thought.hashtags || ''));
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState('');
 
@@ -113,7 +115,7 @@ export function ThoughtCard({
     setEditContent(thought.content);
     setEditCategory(thought.category);
     setEditImageUrl(thought.imageUrl || '');
-    setEditHashtags((thought.hashtags || []).join(', '));
+    setEditHashtags(Array.isArray(thought.hashtags) ? thought.hashtags.join(', ') : (thought.hashtags || ''));
     setLikes(thought.likes?.length || 0);
     setSaves(thought.saves?.length || 0);
     setShares(thought.sharesCount || 0);
@@ -412,70 +414,103 @@ export function ThoughtCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
           <span className="pill">#{currentThought.category}</span>
 
-          {/* Three-dots Menu for Author */}
-          {isAuthor ? (
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                className="button-ghost"
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '1.2rem',
-                  lineHeight: '1',
-                  borderRadius: '6px'
-                }}
-                onClick={() => setMenuOpen((prev) => !prev)}
-                title="Options"
-              >
-                ⋮
-              </button>
+          {/* Options Dropdown for Everyone */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className="button-ghost"
+              style={{
+                padding: '4px 8px',
+                fontSize: '1.2rem',
+                lineHeight: '1',
+                borderRadius: '6px'
+              }}
+              onClick={() => setMenuOpen((prev) => !prev)}
+              title="Options"
+            >
+              ⋮
+            </button>
 
-              {menuOpen ? (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-                    onClick={() => setMenuOpen(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: '100%',
-                      marginTop: '4px',
-                      backgroundColor: 'var(--paper)',
-                      border: '1px solid var(--line)',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                      padding: '4px',
-                      zIndex: 20,
-                      minWidth: '130px'
-                    }}
-                  >
+            {menuOpen ? (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 10 }}
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: '4px',
+                    backgroundColor: 'var(--paper)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    padding: '4px',
+                    zIndex: 20,
+                    minWidth: '140px'
+                  }}
+                >
+                  {isAuthor && (
+                    <>
+                      <button
+                        type="button"
+                        className="button-ghost"
+                        style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px' }}
+                        onClick={() => {
+                          setIsEditing(true);
+                          setMenuOpen(false);
+                        }}
+                      >
+                        <span>✏️</span> Edit Thought
+                      </button>
+                      <button
+                        type="button"
+                        className="button-ghost"
+                        style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px', color: '#c86d34' }}
+                        onClick={handleDelete}
+                        disabled={deleting}
+                      >
+                        <span>🗑️</span> {deleting ? 'Deleting…' : 'Delete Thought'}
+                      </button>
+                    </>
+                  )}
+
+                  {session?.user?.role === 'admin' && (
                     <button
                       type="button"
                       className="button-ghost"
-                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px' }}
-                      onClick={() => {
-                        setIsEditing(true);
-                        setMenuOpen(false);
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px', color: 'var(--ember)' }}
+                      onClick={async () => {
+                        if (!session?.token) return;
+                        try {
+                          await api.toggleAdminFeatureThought(currentThought._id, session.token);
+                          setMenuOpen(false);
+                        } catch {
+                          // ignore
+                        }
                       }}
                     >
-                      <span>✏️</span> Edit Thought
+                      <span>⭐</span> Feature Thought
                     </button>
-                    <button
-                      type="button"
-                      className="button-ghost"
-                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px', color: '#c86d34' }}
-                      onClick={handleDelete}
-                      disabled={deleting}
-                    >
-                      <span>🗑️</span> {deleting ? 'Deleting…' : 'Delete Thought'}
-                    </button>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          ) : null}
+                  )}
+
+                  <button
+                    type="button"
+                    className="button-ghost"
+                    style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.85rem', padding: '6px 10px', color: '#ef4444' }}
+                    onClick={() => {
+                      setShowReportModal(true);
+                      setMenuOpen(false);
+                    }}
+                  >
+                    <span>🚨</span> Report Thought
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -620,9 +655,9 @@ export function ThoughtCard({
             </p>
           </div>
 
-          {currentThought.hashtags?.length ? (
+          {Array.isArray(currentThought.hashtags) && currentThought.hashtags.length ? (
             <div className="hashtag-row" style={{ marginTop: '8px' }}>
-              {currentThought.hashtags.map((tag) => (
+              {currentThought.hashtags.map((tag: string) => (
                 <Link key={tag} href={`/search?q=${encodeURIComponent(tag)}`} className="hashtag">
                   #{tag}
                 </Link>
@@ -852,6 +887,16 @@ export function ThoughtCard({
         thought={currentThought}
         onClose={() => setIsShareModalOpen(false)}
       />
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          targetType="thought"
+          targetId={currentThought._id}
+          token={session?.token}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
     </article>
   );
 }

@@ -16,7 +16,7 @@ export function useSession() {
     // Sync fresh user role & profile from backend
     if (stored?.token) {
       api.me(stored.token)
-        .then((res) => {
+        .then((res: { user: any }) => {
           if (res?.user) {
             const updated: AuthSession = {
               ...stored,

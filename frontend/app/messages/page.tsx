@@ -396,22 +396,49 @@ function MessagesContent() {
                 </div>
               ) : messages.length ? (
                 messages.map((msg) => {
-                  const sId = msg.sender?._id || msg.sender?.id || (typeof msg.sender === 'string' ? msg.sender : '');
+                  const sId = typeof msg.sender === 'object' && msg.sender !== null ? ((msg.sender as any)._id || (msg.sender as any).id || '') : (msg.sender || '');
                   const isMe = sId.toString() === currentUserId?.toString();
 
                   return (
                     <div
                       key={msg._id}
                       className={`chat-bubble-row ${isMe ? 'is-me' : 'is-partner'}`}
+                      style={{ position: 'relative', group: 'chat' } as any}
                     >
                       <div className={`chat-bubble ${isMe ? 'chat-bubble-me' : 'chat-bubble-partner'}`}>
                         <div className="chat-bubble-text">{msg.content}</div>
-                        <div className="chat-bubble-meta">
+                        <div className="chat-bubble-meta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                           <span>{formatChatTime(msg.createdAt)}</span>
                           {isMe && (
-                            <span style={{ fontSize: '0.72rem', marginLeft: '4px' }}>
-                              {msg.read ? '✓✓' : '✓'}
+                            <span style={{ fontSize: '0.72rem', color: msg.read ? '#38bdf8' : 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                              {msg.read || msg.status === 'seen' ? '✓✓' : '✓'}
                             </span>
+                          )}
+                          {isMe && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!session?.token) return;
+                                try {
+                                  await api.deleteMessage(msg._id, session.token);
+                                  setMessages((prev) => prev.filter((m) => m._id !== msg._id));
+                                } catch {
+                                  // ignore
+                                }
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'rgba(255,255,255,0.6)',
+                                cursor: 'pointer',
+                                fontSize: '0.72rem',
+                                marginLeft: '4px'
+                              }}
+                              title="Delete message"
+                            >
+                              ✕
+                            </button>
                           )}
                         </div>
                       </div>

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createThought,
   deleteThought,
+  getDailyFeaturedThought,
   getExploreThoughts,
   getPlatformStats,
   getStories,
@@ -12,6 +13,7 @@ import {
   recordView,
   searchThoughts,
   shareThought,
+  toggleFeatureThought,
   toggleLikeThought,
   toggleSaveThought,
   updateThought
@@ -20,6 +22,7 @@ import { optionalAuth, protect } from '../middleware/auth.js';
 
 const router = Router();
 
+router.get('/featured/daily', optionalAuth, getDailyFeaturedThought);
 router.get('/stats/summary', getPlatformStats);
 router.get('/stories/active', optionalAuth, getStories);
 router.get('/', optionalAuth, getThoughts);
@@ -30,6 +33,7 @@ router.get('/category/:slug', optionalAuth, getThoughtByCategory);
 router.get('/:id', optionalAuth, getThought);
 
 router.post('/', protect, createThought);
+router.patch('/:id/feature', protect, toggleFeatureThought);
 router.patch('/:id', protect, updateThought);
 router.delete('/:id', protect, deleteThought);
 router.post('/:id/like', protect, toggleLikeThought);

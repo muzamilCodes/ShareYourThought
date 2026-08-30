@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Thought from '../models/Thought.js';
 import Comment from '../models/Comment.js';
@@ -176,13 +177,26 @@ export const getSavedThoughts = asyncHandler(async (req, res) => {
 });
 
 export const toggleFollow = asyncHandler(async (req, res) => {
-  const target = await User.findById(req.params.userId);
+  const param = req.params.userId || req.params.id || req.params.username;
+  if (!param) return res.status(400).json({ message: 'User identifier is required' });
+
+  let target = null;
+  if (mongoose.Types.ObjectId.isValid(param)) {
+    target = await User.findById(param);
+  }
+  if (!target) {
+    target = await User.findOne({ username: String(param).replace(/^@/, '').toLowerCase() });
+  }
+
   if (!target) return res.status(404).json({ message: 'User not found' });
   if (target._id.toString() === req.user._id.toString()) {
     return res.status(400).json({ message: 'You cannot follow yourself' });
   }
 
   const current = await User.findById(req.user._id);
+  if (!current.following) current.following = [];
+  if (!target.followers) target.followers = [];
+
   const isFollowing = current.following.some((id) => id.toString() === target._id.toString());
   const isRequested = (target.followRequests || []).some((id) => id.toString() === current._id.toString());
 
@@ -195,7 +209,8 @@ export const toggleFollow = asyncHandler(async (req, res) => {
       following: false,
       requested: false,
       followers: target.followers.length,
-      followingCount: current.following.length
+      followingCount: current.following.length,
+      message: `Unfollowed @${target.username}`
     });
   }
 
@@ -209,7 +224,8 @@ export const toggleFollow = asyncHandler(async (req, res) => {
         following: false,
         requested: false,
         followers: target.followers.length,
-        followingCount: current.following.length
+        followingCount: current.following.length,
+        message: `Cancelled follow request to @${target.username}`
       });
     } else {
       // Send follow request
@@ -227,7 +243,8 @@ export const toggleFollow = asyncHandler(async (req, res) => {
         following: false,
         requested: true,
         followers: target.followers.length,
-        followingCount: current.following.length
+        followingCount: current.following.length,
+        message: `Sent follow request to @${target.username}`
       });
     }
   }
@@ -240,7 +257,7 @@ export const toggleFollow = asyncHandler(async (req, res) => {
     actor: current._id,
     type: 'follow',
     title: `${current.name} started following you`,
-    body: `${current.username} is now part of your thought stream.`
+    body: `@${current.username} is now following your thoughts.`
   });
 
   await Promise.all([current.save(), target.save()]);
@@ -248,7 +265,8 @@ export const toggleFollow = asyncHandler(async (req, res) => {
     following: true,
     requested: false,
     followers: target.followers.length,
-    followingCount: current.following.length
+    followingCount: current.following.length,
+    message: `Now following @${target.username}`
   });
 });
 

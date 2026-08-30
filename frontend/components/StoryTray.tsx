@@ -19,12 +19,17 @@ export function StoryTray({ thoughts: propThoughts = [], onRefresh }: StoryTrayP
 
   const fetchActiveStories = () => {
     api.getStories(session?.token)
-      .then((res) => {
+      .then((res: any) => {
         const now = Date.now();
-        // 24 Hours in milliseconds = 24 * 60 * 60 * 1000
         const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
-        const validStories = (res.stories || []).filter((s) => {
-          if (!s.isStory) return false;
+        const rawList: Thought[] = Array.isArray(res?.stories)
+          ? res.stories
+          : Array.isArray(res?.groups)
+          ? res.groups.flatMap((g: any) => g.thoughts || [])
+          : [];
+
+        const validStories = rawList.filter((s: Thought) => {
+          if (!s?.createdAt) return false;
           const age = now - new Date(s.createdAt).getTime();
           return age < TWENTY_FOUR_HOURS;
         });

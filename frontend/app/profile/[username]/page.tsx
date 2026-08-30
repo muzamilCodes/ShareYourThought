@@ -39,7 +39,7 @@ export default function UserProfilePage() {
       ]);
 
       if (profileRes.status === 'fulfilled' && profileRes.value?.profile) {
-        setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile._id || profileRes.value.profile.id });
+        setProfile({ ...profileRes.value.profile, _id: profileRes.value.profile._id || profileRes.value.profile.id || '' });
         setThoughts(profileRes.value.thoughts || []);
         setIsFollowing(Boolean(profileRes.value.isFollowing));
         setIsRequested(Boolean(profileRes.value.isRequested));

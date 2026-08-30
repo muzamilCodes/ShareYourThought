@@ -11,7 +11,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [followRequests, setFollowRequests] = useState<any[]>([]);
   const [processedRequests, setProcessedRequests] = useState<Record<string, 'accepted' | 'declined'>>({});
-  const [activeFilter, setActiveFilter] = useState<'all' | 'like' | 'comment' | 'follow'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'like' | 'comment' | 'follow' | 'message'>('all');
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -32,6 +32,28 @@ export default function NotificationsPage() {
       setNotifications([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMarkOneRead = async (id: string) => {
+    if (!session?.token) return;
+    try {
+      await api.markNotificationRead(id, session.token);
+      setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleDeleteOne = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session?.token) return;
+    try {
+      await api.deleteNotification(id, session.token);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+    } catch {
+      // ignore
     }
   };
 
@@ -386,10 +408,11 @@ export default function NotificationsPage() {
                     </p>
                   ) : null}
 
-                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     {targetUrl !== '#' ? (
                       <Link
                         href={targetUrl}
+                        onClick={() => handleMarkOneRead(item._id)}
                         className="button-ghost"
                         style={{
                           fontSize: '0.78rem',
@@ -400,9 +423,43 @@ export default function NotificationsPage() {
                           borderRadius: '8px'
                         }}
                       >
-                        {item.type === 'follow' ? 'View Profile →' : 'View Thought →'}
+                        {item.type === 'follow' ? 'View Profile →' : item.type === 'message' ? 'Open Chat →' : 'View Thought →'}
                       </Link>
                     ) : null}
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {!item.read && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkOneRead(item._id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '0.74rem',
+                            color: 'var(--muted)',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          Mark read
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteOne(item._id, e)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: '0.82rem',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          opacity: 0.75
+                        }}
+                        title="Delete notification"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

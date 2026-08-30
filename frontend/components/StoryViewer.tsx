@@ -450,9 +450,9 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
                 "{currentStory.content}"
               </blockquote>
 
-              {currentStory.hashtags?.length ? (
+              {Array.isArray(currentStory.hashtags) && currentStory.hashtags.length ? (
                 <div className="story-hashtags-row">
-                  {currentStory.hashtags.map((tag) => (
+                  {currentStory.hashtags.map((tag: string) => (
                     <span key={tag} className="story-hashtag-pill">
                       #{tag}
                     </span>
