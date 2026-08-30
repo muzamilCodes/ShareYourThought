@@ -228,19 +228,18 @@ export const api = {
       timeline?: any[];
     }>('/admin/stats', { token }),
 
-  listAdminUsers: (params: { page?: number; limit?: number; search?: string; role?: string }, token: string) =>
-    apiFetch<{
+  listAdminUsers: (params: { page?: number; limit?: number; search?: string; role?: string }, token: string) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    if (params.search) qs.set('search', params.search);
+    if (params.role) qs.set('role', params.role);
+    const qStr = qs.toString();
+    return apiFetch<{
       items: User[];
       pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>(
-      '/admin/users?' +
-        new URLSearchParams(
-          Object.entries(params)
-            .filter(([, v]) => v !== undefined && v !== '')
-            .map(([k, v]) => [k, String(v)])
-        ),
-      { token }
-    ),
+    }>(`/admin/users${qStr ? `?${qStr}` : ''}`, { token });
+  },
 
   updateAdminUserRole: (userId: string, role: 'user' | 'admin', token: string) =>
     apiFetch<{ message: string; user: Partial<User> }>(`/admin/users/${userId}/role`, {
@@ -255,19 +254,19 @@ export const api = {
   listAdminThoughts: (
     params: { page?: number; limit?: number; search?: string; category?: string; featured?: boolean | string },
     token: string
-  ) =>
-    apiFetch<{
+  ) => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    if (params.search) qs.set('search', params.search);
+    if (params.category) qs.set('category', params.category);
+    if (params.featured !== undefined && params.featured !== '') qs.set('featured', String(params.featured));
+    const qStr = qs.toString();
+    return apiFetch<{
       items: Thought[];
       pagination: { page: number; limit: number; total: number; totalPages: number };
-    }>(
-      '/admin/thoughts?' +
-        new URLSearchParams(
-          Object.entries(params)
-            .filter(([, v]) => v !== undefined && v !== '')
-            .map(([k, v]) => [k, String(v)])
-        ),
-      { token }
-    ),
+    }>(`/admin/thoughts${qStr ? `?${qStr}` : ''}`, { token });
+  },
 
   toggleAdminFeatureThought: (thoughtId: string, token: string) =>
     apiFetch<{ message: string; thought: Thought }>(`/admin/thoughts/${thoughtId}/feature`, {

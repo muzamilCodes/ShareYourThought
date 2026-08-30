@@ -17,6 +17,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
 
@@ -99,6 +100,7 @@ const mountAppRoutes = (prefix = '') => {
   app.use(`${prefix}/messages`, messageRoutes);
   app.use(`${prefix}/categories`, categoryRoutes);
   app.use(`${prefix}/reports`, reportRoutes);
+  app.use(`${prefix}/admin`, adminRoutes);
 };
 
 // Mount both `/api/...` and fallback `...` routes so requests never 404

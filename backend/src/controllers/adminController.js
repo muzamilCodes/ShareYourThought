@@ -21,6 +21,7 @@ export const getDashboardStats = asyncHandler(async (_req, res) => {
     viewsAggregation,
     dailyThoughtsAgg,
     dailyCommentsAgg,
+    dailyUsersAgg,
     recentUsers,
     recentThoughts,
     topCategories
@@ -34,8 +35,7 @@ export const getDashboardStats = asyncHandler(async (_req, res) => {
       {
         $group: {
           _id: null,
-          totalViews: { $sum: '$viewsCount' },
-          totalShares: { $sum: '$sharesCount' },
+          totalViews: { $sum: { $ifNull: ['$viewsCount', 0] } },
           totalLikesCount: { $sum: { $size: { $ifNull: ['$likes', []] } } }
         }
       }
@@ -46,13 +46,21 @@ export const getDashboardStats = asyncHandler(async (_req, res) => {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           count: { $sum: 1 },
-          views: { $sum: '$viewsCount' },
-          shares: { $sum: '$sharesCount' },
+          views: { $sum: { $ifNull: ['$viewsCount', 0] } },
           likes: { $sum: { $size: { $ifNull: ['$likes', []] } } }
         }
       }
     ]),
     Comment.aggregate([
+      { $match: { createdAt: { $gte: fourteenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 }
+        }
+      }
+    ]),
+    User.aggregate([
       { $match: { createdAt: { $gte: fourteenDaysAgo } } },
       {
         $group: {
@@ -80,6 +88,8 @@ export const getDashboardStats = asyncHandler(async (_req, res) => {
   dailyThoughtsAgg.forEach((d) => dailyThoughtsMap.set(d._id, d));
   const dailyCommentsMap = new Map();
   dailyCommentsAgg.forEach((c) => dailyCommentsMap.set(c._id, c.count));
+  const dailyUsersMap = new Map();
+  (dailyUsersAgg || []).forEach((u) => dailyUsersMap.set(u._id, u.count));
 
   // Build Real 14-Day Activity Timeline
   const timelineDays = 14;
@@ -93,31 +103,40 @@ export const getDashboardStats = asyncHandler(async (_req, res) => {
 
     const realDayData = dailyThoughtsMap.get(key) || { count: 0, views: 0, shares: 0, likes: 0 };
     const realComments = dailyCommentsMap.get(key) || 0;
+    const realNewUsers = dailyUsersMap.get(key) || 0;
 
-    // Actual metrics + base platform activity
+    // Actual counts from database
     const thoughtsCount = realDayData.count;
     const realViews = realDayData.views;
     const realLikes = realDayData.likes;
     const engagement = realLikes + realComments;
+    const usersCount = realNewUsers;
 
-    // Trading Candlestick metrics
-    const dayViewsValue = Math.max(realViews, thoughtsCount * 12 + engagement * 8);
-    const open = Math.round(dayViewsValue * 0.95) || 12;
-    const close = Math.round(dayViewsValue) || 15;
-    const high = Math.round(Math.max(open, close) * 1.15) || 18;
-    const low = Math.round(Math.min(open, close) * 0.85) || 10;
+    // If today, ensure live numbers match actual state
+    const displayThoughts = i === 0 ? Math.max(thoughtsCount, totalThoughts) : thoughtsCount;
+    const displayUsers = i === 0 ? Math.max(usersCount, totalUsers) : usersCount;
+    const displayViews = i === 0 ? Math.max(realViews, metrics.totalViews || 24) : realViews;
+    const displayEngagement = i === 0 ? Math.max(engagement, (metrics.totalLikesCount || 0) + totalComments) : engagement;
+
+    // Candlestick Open/High/Low/Close representing activity intensity
+    const baseValue = displayThoughts * 10 + displayUsers * 15 + displayViews + displayEngagement * 5;
+    const open = Math.round(baseValue * 0.9) || 5;
+    const close = Math.round(baseValue) || 8;
+    const high = Math.round(Math.max(open, close) * 1.2) || 12;
+    const low = Math.round(Math.min(open, close) * 0.8) || 3;
 
     timeline.push({
       date: dateStr,
       fullDate: d.toISOString(),
-      views: dayViewsValue,
-      thoughts: thoughtsCount,
-      engagement: engagement,
+      views: displayViews,
+      thoughts: displayThoughts,
+      users: displayUsers,
+      engagement: displayEngagement,
       open,
       high,
       low,
       close,
-      volume: dayViewsValue * 3 + engagement * 6,
+      volume: baseValue,
       isGreen: close >= open
     });
   }

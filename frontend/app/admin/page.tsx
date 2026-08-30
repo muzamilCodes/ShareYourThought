@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { useSession } from '@/hooks/useSession';
 import { playSuccessSound } from '@/lib/soundUtils';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { TradingTimelineChart, type TimelineDataPoint } from '@/components/TradingTimelineChart';
+import { SocialActivityTimeline } from '@/components/SocialActivityTimeline';
 import type { Category, Thought, User } from '@/types';
 
 interface AdminStats {
@@ -21,7 +21,7 @@ interface AdminStats {
   recentUsers: User[];
   recentThoughts: Thought[];
   topCategories: Category[];
-  timeline?: TimelineDataPoint[];
+  timeline?: any[];
   systemHealth?: any;
 }
 
@@ -88,6 +88,12 @@ export default function AdminPage() {
     try {
       const data = await api.getAdminStats(session.token);
       setStats(data);
+      if (data.recentUsers && data.recentUsers.length > 0) {
+        setUsers((prev) => (prev.length > 0 ? prev : data.recentUsers));
+      }
+      if (data.recentThoughts && data.recentThoughts.length > 0) {
+        setThoughts((prev) => (prev.length > 0 ? prev : data.recentThoughts));
+      }
       if (data.topCategories) {
         setCategories(data.topCategories);
       }
@@ -470,6 +476,7 @@ export default function AdminPage() {
           marginBottom: '28px'
         }}
       >
+        {/* Card 1: Total Users */}
         <div
           style={{
             background: 'var(--paper)',
@@ -480,17 +487,18 @@ export default function AdminPage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--muted)', fontSize: '0.80rem', fontWeight: 700 }}>
-            <span>TOTAL CREATORS</span>
+            <span>TOTAL USERS</span>
             <span style={{ fontSize: '1.2rem' }}>👥</span>
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink)', marginTop: '6px' }}>
-            {loadingStats ? '…' : (stats?.totalUsers || allDisplayUsers.length || 2).toLocaleString()}
+            {loadingStats ? '…' : (stats?.totalUsers ?? allDisplayUsers.length ?? 0).toLocaleString()}
           </div>
           <span style={{ fontSize: '0.74rem', color: 'var(--ember)', fontWeight: 600 }}>
-            Registered Users
+            Registered Accounts
           </span>
         </div>
 
+        {/* Card 2: Total Thoughts */}
         <div
           style={{
             background: 'var(--paper)',
@@ -505,13 +513,14 @@ export default function AdminPage() {
             <span style={{ fontSize: '1.2rem' }}>✍️</span>
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink)', marginTop: '6px' }}>
-            {loadingStats ? '…' : (stats?.totalThoughts || thoughts.length || 8).toLocaleString()}
+            {loadingStats ? '…' : (stats?.totalThoughts ?? thoughts.length ?? 0).toLocaleString()}
           </div>
           <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
-            ⭐ {stats?.featuredThoughtsCount || 2} Featured
+            Published Thoughts
           </span>
         </div>
 
+        {/* Card 3: Total Likes */}
         <div
           style={{
             background: 'var(--paper)',
@@ -522,17 +531,18 @@ export default function AdminPage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--muted)', fontSize: '0.80rem', fontWeight: 700 }}>
-            <span>TOTAL ENGAGEMENT</span>
+            <span>TOTAL LIKES</span>
             <span style={{ fontSize: '1.2rem' }}>❤️</span>
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink)', marginTop: '6px' }}>
-            {loadingStats ? '…' : (((stats?.totalLikes || 0) + (stats?.totalComments || 0)) || 14).toLocaleString()}
+            {loadingStats ? '…' : (stats?.totalLikes ?? 0).toLocaleString()}
           </div>
           <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
-            Likes & Comments
+            Post Likes Given
           </span>
         </div>
 
+        {/* Card 4: Total Comments */}
         <div
           style={{
             background: 'var(--paper)',
@@ -543,27 +553,27 @@ export default function AdminPage() {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--muted)', fontSize: '0.80rem', fontWeight: 700 }}>
-            <span>TOTAL IMPRESSIONS</span>
-            <span style={{ fontSize: '1.2rem' }}>👁️</span>
+            <span>TOTAL COMMENTS</span>
+            <span style={{ fontSize: '1.2rem' }}>💬</span>
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--ink)', marginTop: '6px' }}>
-            {loadingStats ? '…' : ((stats?.totalViews || 1480)).toLocaleString()}
+            {loadingStats ? '…' : (stats?.totalComments ?? 0).toLocaleString()}
           </div>
           <span style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
-            ↗️ {(stats?.totalShares || 12)} External Shares
+            User Comments
           </span>
         </div>
       </div>
 
       {/* =========================================================
-          TRADING-STYLE REAL-TIME ACTIVITY TIMELINE CHART
+          SIMPLE & INTUITIVE 7-DAY SOCIAL ACTIVITY TIMELINE
       ========================================================= */}
-      <TradingTimelineChart
-        data={stats?.timeline || []}
-        totalViews={stats?.totalViews ?? (thoughts.reduce((acc, t) => acc + (t.viewsCount || 0), 0) || 28)}
+      <SocialActivityTimeline
+        timeline={stats?.timeline}
+        totalUsers={stats?.totalUsers || allDisplayUsers.length || 2}
         totalThoughts={stats?.totalThoughts ?? thoughts.length}
+        totalViews={stats?.totalViews ?? (thoughts.reduce((acc, t) => acc + (t.viewsCount || 0), 0) || 28)}
         totalEngagement={((stats?.totalLikes || 0) + (stats?.totalComments || 0)) || 14}
-        systemHealth={stats?.systemHealth}
       />
 
       {/* =========================================================
@@ -619,7 +629,7 @@ export default function AdminPage() {
             transition: 'all 150ms ease'
           }}
         >
-          👥 User Management ({allDisplayUsers.length})
+          👥 User Management ({stats?.totalUsers || allDisplayUsers.length || 0})
         </button>
 
         <button
@@ -639,7 +649,7 @@ export default function AdminPage() {
             transition: 'all 150ms ease'
           }}
         >
-          ✍️ Content Moderation ({thoughts.length || stats?.totalThoughts || 0})
+          ✍️ Content Moderation ({stats?.totalThoughts || thoughts.length || 0})
         </button>
 
         <button
