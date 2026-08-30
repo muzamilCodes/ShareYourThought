@@ -20,6 +20,7 @@ export function RealtimeNotifications() {
     }
 
     const checkNotifications = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const data = await api.listNotifications(session.token);
         if (!data || !Array.isArray(data.notifications)) return;
@@ -58,9 +59,15 @@ export function RealtimeNotifications() {
     // Initial check
     checkNotifications();
 
-    // Poll every 5 seconds for fast real-time responsiveness
-    const interval = setInterval(checkNotifications, 5000);
-    return () => clearInterval(interval);
+    // Check on window focus
+    window.addEventListener('focus', checkNotifications);
+
+    // Poll every 15 seconds when active
+    const interval = setInterval(checkNotifications, 15000);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkNotifications);
+    };
   }, [ready, session?.token]);
 
   if (!activeToast) return null;

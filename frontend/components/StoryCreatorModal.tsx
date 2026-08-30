@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useSession } from '../hooks/useSession';
 import { playSuccessSound } from '../lib/soundUtils';
+import { fileToCompressedDataUrl } from '../lib/imageUtils';
 
 interface StoryCreatorModalProps {
   isOpen: boolean;
@@ -21,7 +22,10 @@ const GRADIENTS = [
 
 export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCreatorModalProps) {
   const { session } = useSession();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageProcessing, setImageProcessing] = useState(false);
   const [selectedGradient, setSelectedGradient] = useState(GRADIENTS[0]);
   const [category, setCategory] = useState('Life');
   const [loading, setLoading] = useState(false);
@@ -29,9 +33,29 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
 
   if (!isOpen) return null;
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageProcessing(true);
+    setError('');
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      setImageUrl(dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not process photo.');
+    } finally {
+      setImageProcessing(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !session?.token) return;
+    if (!content.trim() && !imageUrl.trim()) {
+      setError('Please add a thought or a photo to your story.');
+      return;
+    }
+    if (!session?.token) return;
 
     setLoading(true);
     setError('');
@@ -39,7 +63,8 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
     try {
       await api.createThought(
         {
-          content: content.trim(),
+          content: content.trim() || '✨ Story Moment',
+          imageUrl: imageUrl.trim(),
           category: category || 'Story',
           hashtags: `Story, ${category.replace(/\s+/g, '')}`,
           isStory: true,
@@ -49,6 +74,8 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
       );
       playSuccessSound();
       setContent('');
+      setImageUrl('');
+      window.dispatchEvent(new Event('story-created'));
       onStoryCreated();
       onClose();
     } catch (err) {
@@ -130,8 +157,8 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
             style={{
               height: '240px',
               borderRadius: '18px',
-              background: selectedGradient.bg,
-              padding: '20px',
+              background: imageUrl ? '#000000' : selectedGradient.bg,
+              padding: '16px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
@@ -141,8 +168,26 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
               overflow: 'hidden'
             }}
           >
+            {/* Attached Background Photo if any */}
+            {imageUrl ? (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+                <img
+                  src={imageUrl}
+                  alt="Story preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.7) 100%)'
+                  }}
+                />
+              </div>
+            ) : null}
+
             {/* Top Author Tag */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative', zIndex: 2 }}>
               <img
                 src={userAvatar}
                 alt={session?.user?.name || 'You'}
@@ -157,40 +202,94 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
             </div>
 
             {/* Live Text Preview */}
-            <div style={{ textAlign: 'center', padding: '0 10px' }}>
-              <p style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, lineHeight: 1.4, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                {content.trim() || "What's on your mind? Type below…"}
+            <div style={{ textAlign: 'center', padding: '0 10px', position: 'relative', zIndex: 2 }}>
+              <p style={{ margin: 0, fontSize: '1.10rem', fontWeight: 700, lineHeight: 1.4, textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                {content.trim() || (imageUrl ? '' : "What's on your mind? Type below…")}
               </p>
             </div>
 
             {/* Bottom Tag */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', zIndex: 2 }}>
               <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', padding: '3px 10px', borderRadius: '12px', fontWeight: 600 }}>
                 #{category}
               </span>
             </div>
           </div>
 
-          {/* Gradient Color Selectors */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '16px' }}>
-            {GRADIENTS.map((g) => (
+          {/* Photo Attachment / Change Controls */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={imageProcessing}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '10px',
+                border: '1px solid var(--line)',
+                background: 'var(--dark-soft)',
+                color: 'var(--ink)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>📸</span>
+              <span>{imageProcessing ? 'Processing…' : imageUrl ? 'Change Photo' : 'Add Photo to Story'}</span>
+            </button>
+
+            {imageUrl && (
               <button
-                key={g.id}
                 type="button"
-                onClick={() => setSelectedGradient(g)}
-                title={g.name}
+                onClick={() => setImageUrl('')}
                 style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: g.bg,
-                  border: selectedGradient.id === g.id ? '2.5px solid var(--ink)' : '2px solid transparent',
-                  cursor: 'pointer',
-                  transform: selectedGradient.id === g.id ? 'scale(1.15)' : 'scale(1)',
-                  transition: 'all 150ms ease'
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#ef4444',
+                  fontSize: '0.80rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
                 }}
-              />
-            ))}
+              >
+                ✕ Remove Photo
+              </button>
+            )}
+
+            {/* Gradient Color Selectors */}
+            {!imageUrl && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+                {GRADIENTS.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => setSelectedGradient(g)}
+                    title={g.name}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: g.bg,
+                      border: selectedGradient.id === g.id ? '2.5px solid var(--ink)' : '2px solid transparent',
+                      cursor: 'pointer',
+                      transform: selectedGradient.id === g.id ? 'scale(1.15)' : 'scale(1)',
+                      transition: 'all 150ms ease'
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -199,12 +298,11 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
           <div className="field" style={{ marginBottom: '12px' }}>
             <textarea
               className="textarea"
-              rows={3}
+              rows={2}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Share a thought spark, quote, or reflection…"
+              placeholder="Add a caption or thought spark (optional with photo)…"
               maxLength={280}
-              required
               autoFocus
               style={{ fontSize: '0.90rem', resize: 'none' }}
             />
@@ -228,7 +326,7 @@ export function StoryCreatorModal({ isOpen, onClose, onStoryCreated }: StoryCrea
             <button
               type="submit"
               className="button"
-              disabled={loading || !content.trim()}
+              disabled={loading || (!content.trim() && !imageUrl.trim()) || imageProcessing}
               style={{ flex: 2, minHeight: '40px', fontSize: '0.86rem', fontWeight: 700 }}
             >
               {loading ? 'Publishing…' : 'Share to Story 🚀'}

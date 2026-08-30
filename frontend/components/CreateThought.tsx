@@ -132,6 +132,11 @@ export function CreateThought({
       setIsStory(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
 
+      window.dispatchEvent(new Event('thought-created'));
+      if (isStory) {
+        window.dispatchEvent(new Event('story-created'));
+      }
+
       if (onSuccess) {
         onSuccess();
       } else {

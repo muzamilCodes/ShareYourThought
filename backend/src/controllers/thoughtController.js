@@ -150,6 +150,7 @@ export const getThoughts = asyncHandler(async (req, res) => {
   }
 
   const sortMode = req.query.sort || 'newest';
+  const currentUserIdStr = req.user?._id ? req.user._id.toString() : '';
   const followingIds = (req.user?.following || []).map((id) => id.toString());
 
   // 1. Followed Only Feed
@@ -163,22 +164,25 @@ export const getThoughts = asyncHandler(async (req, res) => {
     return res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
   }
 
-  // 2. Universal Dynamic Ranking with Follow Priority (Followed Creators Ranked First)
+  // 2. Universal Dynamic Ranking with Multi-Tier Follow & Creator Priority
   const allMatching = await populateThought(Thought.find(filters).limit(200));
 
   const ranked = allMatching.sort((a, b) => {
     const aAuthorId = a.author?._id ? a.author._id.toString() : (a.author ? a.author.toString() : '');
     const bAuthorId = b.author?._id ? b.author._id.toString() : (b.author ? b.author.toString() : '');
 
-    const aIsFollowed = followingIds.includes(aAuthorId) ? 1 : 0;
-    const bIsFollowed = followingIds.includes(bAuthorId) ? 1 : 0;
+    // Tier 3: Your own new posts (Always #1 / First)
+    // Tier 2: Creators you follow (Always #2 / High Priority)
+    // Tier 1: General Discovery Creators
+    const aTier = currentUserIdStr && aAuthorId === currentUserIdStr ? 3 : followingIds.includes(aAuthorId) ? 2 : 1;
+    const bTier = currentUserIdStr && bAuthorId === currentUserIdStr ? 3 : followingIds.includes(bAuthorId) ? 2 : 1;
 
-    // Followed creators always appear first at the top of the feed!
-    if (aIsFollowed !== bIsFollowed) {
-      return bIsFollowed - aIsFollowed;
+    // Highest tier always appears at the top!
+    if (aTier !== bTier) {
+      return bTier - aTier;
     }
 
-    // Within the same follow priority tier, apply the requested sort:
+    // Within the same priority tier, apply the requested sort mode:
     if (sortMode === 'views' || sortMode === 'most_viewed') {
       const diff = (b.viewsCount || 0) - (a.viewsCount || 0);
       if (diff !== 0) return diff;
@@ -193,10 +197,18 @@ export const getThoughts = asyncHandler(async (req, res) => {
     }
 
     if (sortMode === 'trending') {
-      return thoughtScore(b) - thoughtScore(a);
+      // Dynamic freshness mix: blends virality score with fresh rotation
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      const aScore = thoughtScore(a) + (aTier >= 2 ? 1000 : 0);
+      const bScore = thoughtScore(b) + (bTier >= 2 ? 1000 : 0);
+      if (Math.abs(aScore - bScore) > 20) {
+        return bScore - aScore;
+      }
+      return bTime - aTime;
     }
 
-    // Latest / Newest
+    // Default / Latest: Pure chronological recency (newest posts always first)
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 

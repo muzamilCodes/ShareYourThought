@@ -3,7 +3,6 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 import env from './config/env.js';
 import { notFoundHandler } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -20,6 +19,9 @@ import reportRoutes from './routes/reportRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 
 const app = express();
+
+// Trust reverse proxies (Render, Vercel, Cloudflare, Heroku) so client IP is accurately extracted from X-Forwarded-For
+app.set('trust proxy', 1);
 
 // Flexible CORS for local development and cloud deployments (Vercel, Render, custom domains)
 app.use(
@@ -65,15 +67,6 @@ app.use((req, _res, next) => {
 });
 
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 500,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: 'Too many requests, please try again later' }
-  })
-);
 
 // Root and health check routes
 app.get('/', (_req, res) => {

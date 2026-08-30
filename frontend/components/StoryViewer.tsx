@@ -270,21 +270,23 @@ export function StoryViewer({ storyGroups, initialGroupIndex, onClose }: StoryVi
           )}
 
           {/* Text Content Overlay */}
-          <div className="story-text-container">
-            <blockquote className="story-thought-text">
-              "{currentStory.content}"
-            </blockquote>
+          {currentStory.content && currentStory.content !== '✨ Story Moment' ? (
+            <div className="story-text-container">
+              <blockquote className="story-thought-text">
+                "{currentStory.content}"
+              </blockquote>
 
-            {currentStory.hashtags?.length ? (
-              <div className="story-hashtags-row">
-                {currentStory.hashtags.map((tag) => (
-                  <span key={tag} className="story-hashtag-pill">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
+              {currentStory.hashtags?.length ? (
+                <div className="story-hashtags-row">
+                  {currentStory.hashtags.map((tag) => (
+                    <span key={tag} className="story-hashtag-pill">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Touch / Click zones for Previous & Next */}
           <div
