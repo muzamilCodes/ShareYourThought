@@ -125,6 +125,7 @@ export const getThoughts = asyncHandler(async (req, res) => {
   const sortMode = req.query.sort || 'newest';
   const followingIds = (req.user?.following || []).map((id) => id.toString());
 
+  // 1. Followed Only Feed
   if (sortMode === 'following') {
     if (!req.user || !followingIds.length) {
       return res.json({ thoughts: [], page, limit, total: 0, totalPages: 0 });
@@ -135,44 +136,46 @@ export const getThoughts = asyncHandler(async (req, res) => {
     return res.json({ thoughts, page, limit, total, totalPages: Math.ceil(total / limit) });
   }
 
-  if (sortMode === 'trending') {
-    const allMatching = await populateThought(Thought.find(filters).limit(200));
-    const ranked = allMatching.sort((a, b) => {
-      const aIsFollowed = a.author && followingIds.includes(a.author._id ? a.author._id.toString() : a.author.toString());
-      const bIsFollowed = b.author && followingIds.includes(b.author._id ? b.author._id.toString() : b.author.toString());
-      const aBonus = aIsFollowed ? 400 : 0;
-      const bBonus = bIsFollowed ? 400 : 0;
-      return (thoughtScore(b) + bBonus) - (thoughtScore(a) + aBonus);
-    });
-    const paginated = ranked.slice(skip, skip + limit);
-    const total = allMatching.length;
-    return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
-  }
-
-  if (sortMode === 'popular') {
-    const allMatching = await populateThought(Thought.find(filters).limit(200));
-    const ranked = allMatching.sort((a, b) => {
-      const bTotal = (b.likes?.length || 0) + (b.commentsCount || 0) + (b.viewsCount || 0);
-      const aTotal = (a.likes?.length || 0) + (a.commentsCount || 0) + (a.viewsCount || 0);
-      return bTotal - aTotal;
-    });
-    const paginated = ranked.slice(skip, skip + limit);
-    const total = allMatching.length;
-    return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
-  }
-
-  // Newest with Followed Priority
+  // 2. Universal Dynamic Ranking with Follow Priority (Followed Creators Ranked First)
   const allMatching = await populateThought(Thought.find(filters).limit(200));
+
   const ranked = allMatching.sort((a, b) => {
-    const aIsFollowed = a.author && followingIds.includes(a.author._id ? a.author._id.toString() : a.author.toString()) ? 1 : 0;
-    const bIsFollowed = b.author && followingIds.includes(b.author._id ? b.author._id.toString() : b.author.toString()) ? 1 : 0;
-    if (aIsFollowed !== bIsFollowed) return bIsFollowed - aIsFollowed;
+    const aAuthorId = a.author?._id ? a.author._id.toString() : (a.author ? a.author.toString() : '');
+    const bAuthorId = b.author?._id ? b.author._id.toString() : (b.author ? b.author.toString() : '');
+
+    const aIsFollowed = followingIds.includes(aAuthorId) ? 1 : 0;
+    const bIsFollowed = followingIds.includes(bAuthorId) ? 1 : 0;
+
+    // Followed creators always appear first at the top of the feed!
+    if (aIsFollowed !== bIsFollowed) {
+      return bIsFollowed - aIsFollowed;
+    }
+
+    // Within the same follow priority tier, apply the requested sort:
+    if (sortMode === 'views' || sortMode === 'most_viewed') {
+      const diff = (b.viewsCount || 0) - (a.viewsCount || 0);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+
+    if (sortMode === 'popular' || sortMode === 'liked' || sortMode === 'most_liked') {
+      const bLikes = b.likes?.length || 0;
+      const aLikes = a.likes?.length || 0;
+      if (bLikes !== aLikes) return bLikes - aLikes;
+      return (b.commentsCount || 0) - (a.commentsCount || 0);
+    }
+
+    if (sortMode === 'trending') {
+      return thoughtScore(b) - thoughtScore(a);
+    }
+
+    // Latest / Newest
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
+
   const paginated = ranked.slice(skip, skip + limit);
   const total = allMatching.length;
-
-  res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
+  return res.json({ thoughts: paginated, page, limit, total, totalPages: Math.ceil(total / limit) });
 });
 
 export const getThought = asyncHandler(async (req, res) => {

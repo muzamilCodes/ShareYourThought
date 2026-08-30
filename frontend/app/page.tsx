@@ -18,9 +18,9 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [activeSort, setActiveSort] = useState<'following' | 'trending' | 'newest' | 'popular'>('trending');
+  const [activeSort, setActiveSort] = useState<'trending' | 'newest' | 'views' | 'popular' | 'following'>('trending');
 
-  const fetchFeed = (sortMode: 'following' | 'trending' | 'newest' | 'popular') => {
+  const fetchFeed = (sortMode: 'trending' | 'newest' | 'views' | 'popular' | 'following') => {
     setLoading(true);
     api.getThoughts({ sort: sortMode, limit: 20 }, session?.token)
       .then((feed) => {
@@ -33,6 +33,18 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchFeed(activeSort);
+  }, [activeSort, session?.token]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchFeed(activeSort);
+    };
+    window.addEventListener('follow-status-updated', handleRefresh);
+    window.addEventListener('thought-created', handleRefresh);
+    return () => {
+      window.removeEventListener('follow-status-updated', handleRefresh);
+      window.removeEventListener('thought-created', handleRefresh);
+    };
   }, [activeSort, session?.token]);
 
   useEffect(() => {
@@ -97,26 +109,26 @@ export default function HomePage() {
             }}
           >
             <h2 className="display-title" style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800 }}>
-              {activeSort === 'following'
-                ? '👥 Following Feed'
+              {activeSort === 'views'
+                ? '👁️ Most Viewed'
                 : activeSort === 'trending'
-                ? '🔥 Trending Feed'
+                ? '🔥 Trending'
+                : activeSort === 'newest'
+                ? '⚡ Latest'
                 : activeSort === 'popular'
-                ? '🏆 Most Liked'
-                : '⚡ Latest Feed'}
+                ? '❤️ Most Liked'
+                : '👥 Following Feed'}
             </h2>
 
             {/* Feed Sort Tabs */}
             <div className="feed-sort-tabs">
-              {session?.token ? (
-                <button
-                  type="button"
-                  className={`feed-sort-tab ${activeSort === 'following' ? 'is-active' : ''}`}
-                  onClick={() => setActiveSort('following')}
-                >
-                  👥 Following
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className={`feed-sort-tab ${activeSort === 'views' ? 'is-active' : ''}`}
+                onClick={() => setActiveSort('views')}
+              >
+                👁️ Most Viewed
+              </button>
               <button
                 type="button"
                 className={`feed-sort-tab ${activeSort === 'trending' ? 'is-active' : ''}`}
@@ -136,8 +148,17 @@ export default function HomePage() {
                 className={`feed-sort-tab ${activeSort === 'popular' ? 'is-active' : ''}`}
                 onClick={() => setActiveSort('popular')}
               >
-                🏆 Liked
+                ❤️ Most Liked
               </button>
+              {session?.token ? (
+                <button
+                  type="button"
+                  className={`feed-sort-tab ${activeSort === 'following' ? 'is-active' : ''}`}
+                  onClick={() => setActiveSort('following')}
+                >
+                  👥 Following
+                </button>
+              ) : null}
             </div>
           </div>
 

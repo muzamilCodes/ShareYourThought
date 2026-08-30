@@ -43,6 +43,7 @@ export function InstagramRightRail() {
     try {
       const res = await api.followUser(userId, session.token);
       setFollowingMap((prev) => ({ ...prev, [userId]: res.following }));
+      window.dispatchEvent(new CustomEvent('follow-status-updated', { detail: { userId, following: res.following } }));
     } catch {
       // Revert on failure
       setFollowingMap((prev) => ({ ...prev, [userId]: currentFollowing }));
