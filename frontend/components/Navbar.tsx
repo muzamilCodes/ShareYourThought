@@ -79,7 +79,10 @@ export function Navbar() {
       icon: '🔔',
       badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : unreadCount) : null
     },
-    { href: profileHref, label: 'Profile', icon: '👤', authRequired: true }
+    { href: profileHref, label: 'Profile', icon: '👤', authRequired: true },
+    ...(session?.user?.role === 'admin'
+      ? [{ href: '/admin', label: 'Admin Panel', icon: '🛡️', authRequired: true }]
+      : [])
   ];
 
   return (

@@ -209,5 +209,82 @@ export const api = {
       body: JSON.stringify({ content })
     }),
   getUnreadMessagesCount: (token: string) =>
-    apiFetch<{ unreadCount: number }>('/messages/unread-count', { token })
+    apiFetch<{ unreadCount: number }>('/messages/unread-count', { token }),
+
+  // Admin Panel APIs
+  getAdminStats: (token: string) =>
+    apiFetch<{
+      totalUsers: number;
+      totalThoughts: number;
+      totalComments: number;
+      totalCategories: number;
+      featuredThoughtsCount: number;
+      totalViews: number;
+      totalShares: number;
+      totalLikes: number;
+      recentUsers: User[];
+      recentThoughts: Thought[];
+      topCategories: Category[];
+      timeline?: any[];
+    }>('/admin/stats', { token }),
+
+  listAdminUsers: (params: { page?: number; limit?: number; search?: string; role?: string }, token: string) =>
+    apiFetch<{
+      items: User[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(
+      '/admin/users?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== '')
+            .map(([k, v]) => [k, String(v)])
+        ),
+      { token }
+    ),
+
+  updateAdminUserRole: (userId: string, role: 'user' | 'admin', token: string) =>
+    apiFetch<{ message: string; user: Partial<User> }>(`/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      token,
+      body: JSON.stringify({ role })
+    }),
+
+  deleteAdminUser: (userId: string, token: string) =>
+    apiFetch<{ message: string }>(`/admin/users/${userId}`, { method: 'DELETE', token }),
+
+  listAdminThoughts: (
+    params: { page?: number; limit?: number; search?: string; category?: string; featured?: boolean | string },
+    token: string
+  ) =>
+    apiFetch<{
+      items: Thought[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>(
+      '/admin/thoughts?' +
+        new URLSearchParams(
+          Object.entries(params)
+            .filter(([, v]) => v !== undefined && v !== '')
+            .map(([k, v]) => [k, String(v)])
+        ),
+      { token }
+    ),
+
+  toggleAdminFeatureThought: (thoughtId: string, token: string) =>
+    apiFetch<{ message: string; thought: Thought }>(`/admin/thoughts/${thoughtId}/feature`, {
+      method: 'PATCH',
+      token
+    }),
+
+  deleteAdminThought: (thoughtId: string, token: string) =>
+    apiFetch<{ message: string }>(`/admin/thoughts/${thoughtId}`, { method: 'DELETE', token }),
+
+  createAdminCategory: (payload: { name: string; description?: string; accent?: string }, token: string) =>
+    apiFetch<{ message: string; category: Category }>('/admin/categories', {
+      method: 'POST',
+      token,
+      body: JSON.stringify(payload)
+    }),
+
+  deleteAdminCategory: (categoryId: string, token: string) =>
+    apiFetch<{ message: string }>(`/admin/categories/${categoryId}`, { method: 'DELETE', token })
 };

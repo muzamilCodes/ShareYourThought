@@ -2,15 +2,35 @@
 
 import { useEffect, useState } from 'react';
 import type { AuthSession } from '../types';
-import { clearStoredSession, readStoredSession } from '../lib/api';
+import { api, clearStoredSession, readStoredSession, saveStoredSession } from '../lib/api';
 
 export function useSession() {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setSession(readStoredSession());
+    const stored = readStoredSession();
+    setSession(stored);
     setReady(true);
+
+    // Sync fresh user role & profile from backend
+    if (stored?.token) {
+      api.me(stored.token)
+        .then((res) => {
+          if (res?.user) {
+            const updated: AuthSession = {
+              ...stored,
+              user: {
+                ...stored.user,
+                ...res.user
+              }
+            };
+            setSession(updated);
+            saveStoredSession(updated);
+          }
+        })
+        .catch(() => {});
+    }
 
     const handleExpired = () => {
       setSession(null);
